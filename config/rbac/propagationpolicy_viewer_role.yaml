@@ -1,0 +1,20 @@
+# permissions for end users to view propagationpolicies.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: propagationpolicy-viewer-role
+rules:
+- apiGroups:
+  - policy.harmonycloud.io
+  resources:
+  - propagationpolicies
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - policy.harmonycloud.io
+  resources:
+  - propagationpolicies/status
+  verbs:
+  - get

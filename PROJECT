@@ -1,0 +1,29 @@
+domain: harmonycloud.io
+layout:
+- go.kubebuilder.io/v3
+multigroup: true
+plugins:
+  manifests.sdk.operatorframework.io/v2: {}
+  scorecard.sdk.operatorframework.io/v2: {}
+projectName: nodes-grouping
+repo: github.com/Congrool/nodes-grouping
+resources:
+- api:
+    crdVersion: v1
+    namespaced: true
+  controller: true
+  domain: harmonycloud.io
+  group: cluster.harmonycloud.io
+  kind: Cluster
+  path: github.com/Congrool/nodes-grouping/api/v1alpha1
+  version: v1alpha1
+- api:
+    crdVersion: v1
+    namespaced: true
+  controller: true
+  domain: harmonycloud.io
+  group: policy
+  kind: PropagationPolicy
+  path: github.com/Congrool/nodes-grouping/apis/policy/v1alpha1
+  version: v1alpha1
+version: "3"
