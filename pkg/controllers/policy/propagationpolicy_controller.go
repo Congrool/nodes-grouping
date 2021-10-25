@@ -24,7 +24,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
-	policyv1alpha1 "github.com/Congrool/nodes-grouping/apis/policy/v1alpha1"
+	policyv1alpha1 "github.com/Congrool/nodes-grouping/pkg/apis/policy/v1alpha1"
 )
 
 // PropagationPolicyReconciler reconciles a PropagationPolicy object

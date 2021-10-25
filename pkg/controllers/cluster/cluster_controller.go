@@ -24,7 +24,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
-	clusterharmonycloudiov1alpha1 "github.com/Congrool/nodes-grouping/apis/cluster/v1alpha1"
+	clusterharmonycloudiov1alpha1 "github.com/Congrool/nodes-grouping/pkg/apis/cluster/v1alpha1"
 )
 
 // ClusterReconciler reconciles a Cluster object
