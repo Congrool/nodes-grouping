@@ -228,6 +228,3 @@ type ReplicaSchedulingStrategy struct {
 	WeightPreference *ClusterPreferences `json:"weightPreference,omitempty"`
 }
 
-//func init() {
-//	SchemeBuilder.Register(&PropagationPolicy{}, &PropagationPolicyList{})
-//}
