@@ -17,12 +17,12 @@ echo "Generating with register-gen"
 # GO111MODULE=on go install k8s.io/code-generator/cmd/register-gen
 register-gen \
   --go-header-file hack/boilerplate.go.txt \
-  --input-dirs=./apis/cluster/v1alpha1 \
-  --output-package=./apis/cluster/v1alpha1 \
+  --input-dirs=./pkg/apis/cluster/v1alpha1 \
+  --output-package=./pkg/apis/cluster/v1alpha1 \
   --output-file-base=zz_generated.register
 
 register-gen \
   --go-header-file hack/boilerplate.go.txt \
-  --input-dirs=./apis/policy/v1alpha1 \
-  --output-package=./apis/policy/v1alpha1 \
+  --input-dirs=./pkg/apis/policy/v1alpha1 \
+  --output-package=./pkg/apis/policy/v1alpha1 \
   --output-file-base=zz_generated.register

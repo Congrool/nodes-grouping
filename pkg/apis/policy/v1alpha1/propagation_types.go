@@ -227,4 +227,3 @@ type ReplicaSchedulingStrategy struct {
 	// +optional
 	WeightPreference *ClusterPreferences `json:"weightPreference,omitempty"`
 }
-
