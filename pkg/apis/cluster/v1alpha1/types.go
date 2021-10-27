@@ -44,7 +44,7 @@ type ClusterSpec struct {
 	Nodes []string `json:"nodes"`
 
 	// MatchLabels match the nodes that have the labels
-	MatchLabels []string `json:"nodes"`
+	MatchLabels map[string]string `json:"matchLables,omitempty"`
 }
 
 // ClusterStatus defines the observed state of Cluster
@@ -61,7 +61,6 @@ type ClusterStatus struct {
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status
 //+kubebuilder:storageversion
-
 
 // Cluster is the Schema for the clusters API
 type Cluster struct {

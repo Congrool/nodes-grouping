@@ -19,11 +19,21 @@ package policy
 import (
 	"context"
 
+	appsv1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/errors"
+	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/log"
+	"sigs.k8s.io/controller-runtime/pkg/source"
 
+	clusterv1alpha1 "github.com/Congrool/nodes-grouping/pkg/apis/cluster/v1alpha1"
 	policyv1alpha1 "github.com/Congrool/nodes-grouping/pkg/apis/policy/v1alpha1"
 )
 
@@ -49,14 +59,178 @@ type PropagationPolicyReconciler struct {
 func (r *PropagationPolicyReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	_ = log.FromContext(ctx)
 
-	// your logic here
+	policy := &policyv1alpha1.PropagationPolicy{}
+	if err := r.Client.Get(ctx, req.NamespacedName, policy); err != nil {
+		if apierrors.IsNotFound(err) {
+			return ctrl.Result{}, nil
+		}
+		return ctrl.Result{Requeue: true}, err
+	}
 
-	return ctrl.Result{}, nil
+	nodesInClusters, err := r.getNodesInClusters(ctx)
+	if err != nil {
+		klog.Errorf("failed to get nodes in clusters, err: %v", err)
+		return ctrl.Result{}, nil
+	}
+
+	deploys := r.fetchManifestsResource(ctx, policy)
+
+	errs := []error{}
+	for _, deploy := range deploys {
+		podList, err := r.getPodListFromDeploy(ctx, deploy)
+		desiredClusterAndPods := desiredPodsNumInEachCluster(policy.Spec.Placement.StaticWeightList, *deploy.Spec.Replicas)
+		if err != nil {
+			klog.Errorf("failed to get pod list of deployment %s/%s, %v", deploy.Namespace, deploy.Name, err)
+			continue
+		}
+
+		deletePods := r.getPodsNeedToDelete(podList.Items, desiredClusterAndPods, nodesInClusters)
+		for _, pod := range deletePods {
+			if err := r.Client.Delete(ctx, pod); err != nil {
+				klog.Errorf("failed to delete pod %s/%s, %v", pod.Namespace, pod.Name, err)
+				errs = append(errs, err)
+			}
+		}
+	}
+
+	return ctrl.Result{}, errors.NewAggregate(errs)
+}
+
+func (r *PropagationPolicyReconciler) getPodListFromDeploy(ctx context.Context, deploy *appsv1.Deployment) (*corev1.PodList, error) {
+	labelselector, err := metav1.LabelSelectorAsSelector(deploy.Spec.Selector)
+	if err != nil {
+		return nil, err
+	}
+	podList := &corev1.PodList{}
+	if err := r.Client.List(ctx, podList, &client.ListOptions{LabelSelector: labelselector}); err != nil {
+		return nil, err
+	}
+	return podList, nil
+}
+
+func (r *PropagationPolicyReconciler) getPodsNeedToDelete(pods []corev1.Pod, desiredPods map[string]int, nodesInClusters map[string]string) []*corev1.Pod {
+	deletePod := []*corev1.Pod{}
+	count := make(map[string]int)
+
+	for _, pod := range pods {
+		if pod.Spec.NodeName == "" {
+			continue
+		}
+		if clusterName, ok := nodesInClusters[pod.Spec.NodeName]; ok {
+			if count[clusterName] >= desiredPods[clusterName] {
+				// More than desired number of pods can run in this cluster
+				deletePod = append(deletePod, &pod)
+			}
+			count[clusterName]++
+		}
+	}
+	return deletePod
+}
+
+func (r *PropagationPolicyReconciler) getNodesInClusters(ctx context.Context) (map[string]string, error) {
+	clusterList := &clusterv1alpha1.ClusterList{}
+	if err := r.Client.List(ctx, clusterList); err != nil {
+		return nil, err
+	}
+	nodesInClusters := make(map[string]string)
+	for _, cluster := range clusterList.Items {
+		labelSelector := metav1.SetAsLabelSelector(cluster.Spec.MatchLabels)
+		selector, err := metav1.LabelSelectorAsSelector(labelSelector)
+		if err != nil {
+			klog.Errorf("failed to get list selector according to matchLabels of cluster: %s, err %v", cluster.Name, err)
+			return nil, err
+		}
+		nodeList := &corev1.NodeList{}
+		if err := r.Client.List(ctx, nodeList, &client.ListOptions{LabelSelector: selector}); err != nil {
+			klog.Errorf("failed to list node for cluster %s, %v", cluster.ClusterName, err)
+			return nil, err
+		}
+		for i := range nodeList.Items {
+			nodesInClusters[nodeList.Items[i].Name] = cluster.ClusterName
+		}
+	}
+
+	return nodesInClusters, nil
 }
 
 // SetupWithManager sets up the controller with the Manager.
 func (r *PropagationPolicyReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&policyv1alpha1.PropagationPolicy{}).
+		Watches(&source.Kind{Type: &clusterv1alpha1.Cluster{}}, handler.EnqueueRequestsFromMapFunc(r.newClusterMapFunc)).
 		Complete(r)
+}
+
+func (r *PropagationPolicyReconciler) fetchManifestsResource(ctx context.Context, policy *policyv1alpha1.PropagationPolicy) []*appsv1.Deployment {
+	deploys := []*appsv1.Deployment{}
+	for _, selector := range policy.Spec.ResourceSelectors {
+		deploy := &appsv1.Deployment{}
+		key := types.NamespacedName{Namespace: selector.Namespace, Name: selector.Name}
+		err := r.Client.Get(ctx, key, deploy)
+		if err != nil {
+			klog.Errorf("failed to get deployment namespace: %s name: %s, %v", selector.Namespace, selector.Name)
+			continue
+		}
+		deploys = append(deploys, deploy)
+	}
+	return deploys
+}
+
+func (p *PropagationPolicyReconciler) newClusterMapFunc(obj client.Object) []ctrl.Request {
+	clusterobj := obj.(*clusterv1alpha1.Cluster)
+	policyList := &policyv1alpha1.PropagationPolicyList{}
+	if err := p.Client.List(context.TODO(), policyList); err != nil {
+		klog.Errorf("failed to list propagation policy, %v", err)
+		return nil
+	}
+
+	results := []ctrl.Request{}
+
+	forEachPolicy := func(fn func(*policyv1alpha1.PropagationPolicy)) {
+		for i := range policyList.Items {
+			fn(&policyList.Items[i])
+		}
+	}
+	ifContainsCluster := func(policy *policyv1alpha1.PropagationPolicy) bool {
+		for _, weight := range policy.Spec.Placement.StaticWeightList {
+			for _, cluster := range weight.TargetCluster.ClusterNames {
+				if cluster == clusterobj.Name {
+					return true
+				}
+			}
+		}
+		return false
+	}
+
+	forEachPolicy(func(policy *policyv1alpha1.PropagationPolicy) {
+		if ifContainsCluster(policy) {
+			results = append(results, ctrl.Request{
+				NamespacedName: types.NamespacedName{
+					Namespace: policy.Namespace,
+					Name:      policy.Name,
+				}})
+		}
+	})
+
+	return results
+}
+
+func desiredPodsNumInEachCluster(weights []policyv1alpha1.StaticClusterWeight, replicaNum int32) map[string]int {
+	var sum int64
+	results := make(map[string]int)
+	for _, weight := range weights {
+		for range weight.TargetCluster.ClusterNames {
+			sum += weight.Weight
+		}
+	}
+
+	for _, weight := range weights {
+		ratio := float64(weight.Weight) / float64(sum)
+		desiredNum := int(ratio*float64(replicaNum) + 0.5)
+		for _, cluster := range weight.TargetCluster.ClusterNames {
+			results[cluster] = desiredNum
+		}
+	}
+
+	return results
 }

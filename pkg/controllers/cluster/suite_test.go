@@ -30,7 +30,7 @@ import (
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
-	clusterharmonycloudiov1alpha1 "github.com/Congrool/nodes-grouping/apis/cluster/v1alpha1"
+	clusterharmonycloudiov1alpha1 "github.com/Congrool/nodes-grouping/pkg/apis/cluster/v1alpha1"
 	//+kubebuilder:scaffold:imports
 )
 
