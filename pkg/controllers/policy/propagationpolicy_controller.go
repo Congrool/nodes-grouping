@@ -35,6 +35,7 @@ import (
 
 	clusterv1alpha1 "github.com/Congrool/nodes-grouping/pkg/apis/cluster/v1alpha1"
 	policyv1alpha1 "github.com/Congrool/nodes-grouping/pkg/apis/policy/v1alpha1"
+	"github.com/Congrool/nodes-grouping/pkg/utils"
 )
 
 // PropagationPolicyReconciler reconciles a PropagationPolicy object
@@ -67,7 +68,13 @@ func (r *PropagationPolicyReconciler) Reconcile(ctx context.Context, req ctrl.Re
 		return ctrl.Result{Requeue: true}, err
 	}
 
-	nodesInClusters, err := r.getNodesInClusters(ctx)
+	clusterList := &clusterv1alpha1.ClusterList{}
+	if err := r.Client.List(ctx, clusterList, &client.ListOptions{}); err != nil {
+		klog.Errorf("failed to list cluster, %v", err)
+		return ctrl.Result{}, nil
+	}
+	nodesInClusters, err := utils.GetNodesInClusters(ctx, r.Client, clusterList.Items)
+
 	if err != nil {
 		klog.Errorf("failed to get nodes in clusters, err: %v", err)
 		return ctrl.Result{}, nil
@@ -125,32 +132,6 @@ func (r *PropagationPolicyReconciler) getPodsNeedToDelete(pods []corev1.Pod, des
 		}
 	}
 	return deletePod
-}
-
-func (r *PropagationPolicyReconciler) getNodesInClusters(ctx context.Context) (map[string]string, error) {
-	clusterList := &clusterv1alpha1.ClusterList{}
-	if err := r.Client.List(ctx, clusterList); err != nil {
-		return nil, err
-	}
-	nodesInClusters := make(map[string]string)
-	for _, cluster := range clusterList.Items {
-		labelSelector := metav1.SetAsLabelSelector(cluster.Spec.MatchLabels)
-		selector, err := metav1.LabelSelectorAsSelector(labelSelector)
-		if err != nil {
-			klog.Errorf("failed to get list selector according to matchLabels of cluster: %s, err %v", cluster.Name, err)
-			return nil, err
-		}
-		nodeList := &corev1.NodeList{}
-		if err := r.Client.List(ctx, nodeList, &client.ListOptions{LabelSelector: selector}); err != nil {
-			klog.Errorf("failed to list node for cluster %s, %v", cluster.ClusterName, err)
-			return nil, err
-		}
-		for i := range nodeList.Items {
-			nodesInClusters[nodeList.Items[i].Name] = cluster.ClusterName
-		}
-	}
-
-	return nodesInClusters, nil
 }
 
 // SetupWithManager sets up the controller with the Manager.
