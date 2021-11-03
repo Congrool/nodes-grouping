@@ -8,6 +8,7 @@ require (
 	github.com/onsi/gomega v1.15.0
 	k8s.io/api v0.22.3
 	k8s.io/apimachinery v0.22.3
+	k8s.io/apiserver v0.22.2
 	k8s.io/client-go v0.22.3
 	k8s.io/klog/v2 v2.9.0
 	k8s.io/kube-scheduler v0.22.3

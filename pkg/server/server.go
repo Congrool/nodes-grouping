@@ -12,7 +12,8 @@ import (
 	"github.com/Congrool/nodes-grouping/pkg/server/scheduler"
 	"github.com/Congrool/nodes-grouping/pkg/utils"
 	"github.com/gorilla/mux"
-	"sigs.k8s.io/controller-runtime/pkg/client"
+	"k8s.io/klog/v2"
+	controllerruntime "sigs.k8s.io/controller-runtime"
 )
 
 type Server interface {
@@ -20,26 +21,34 @@ type Server interface {
 }
 
 type server struct {
-	httpserver *http.Server
-	scheduler  scheduler.SchedulerExtender
-	ctx        context.Context
+	httpserver        *http.Server
+	controllerManager controllerruntime.Manager
+	scheduler         scheduler.SchedulerExtender
+	ctx               context.Context
 }
 
-func NewPolicyServer(ctx context.Context, client client.Client) {
+func NewPolicyServer(ctx context.Context, controllerManager controllerruntime.Manager) Server {
 	s := &server{
 		httpserver: &http.Server{
 			Addr: fmt.Sprintf("%s:%s", constants.ServerListeningAddr, constants.ServerListeningPort),
 		},
-		ctx: ctx,
+		controllerManager: controllerManager,
+		ctx:               ctx,
 	}
-	s.scheduler = scheduler.NewSchedulerExtender(ctx, client)
+	s.scheduler = scheduler.NewSchedulerExtender(ctx, controllerManager.GetClient())
 
 	mux := mux.NewRouter()
 	s.registerHandler(mux)
 	s.httpserver.Handler = mux
+
+	return s
 }
 
-func (s *server) Run(stopCh <-chan struct{}) {
+func (s *server) Run() {
+	klog.Info("starting scheduler extender server, waiting for cache sync")
+	if !s.controllerManager.GetCache().WaitForCacheSync(s.ctx) {
+		panic("failed on WaitForCacheSync")
+	}
 	go func() {
 		err := s.httpserver.ListenAndServe()
 		if err != nil {
@@ -47,7 +56,7 @@ func (s *server) Run(stopCh <-chan struct{}) {
 		}
 	}()
 
-	<-stopCh
+	<-s.ctx.Done()
 	s.httpserver.Shutdown(s.ctx)
 }
 

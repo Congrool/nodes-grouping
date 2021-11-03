@@ -17,17 +17,21 @@ limitations under the License.
 package main
 
 import (
+	"context"
 	"flag"
 	"os"
 
 	"github.com/Congrool/nodes-grouping/pkg/controllers/cluster"
+	"github.com/Congrool/nodes-grouping/pkg/server"
 
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
 	// to ensure that exec-entrypoint and run can make use of them.
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
+	"k8s.io/klog/v2"
 
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
+	apiserver "k8s.io/apiserver/pkg/server"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
@@ -40,8 +44,9 @@ import (
 )
 
 var (
-	scheme   = runtime.NewScheme()
-	setupLog = ctrl.Log.WithName("setup")
+	scheme      = runtime.NewScheme()
+	setupLog    = ctrl.Log.WithName("setup")
+	ctx, cancel = context.WithCancel(context.Background())
 )
 
 func init() {
@@ -50,6 +55,7 @@ func init() {
 	utilruntime.Must(clusterharmonycloudiov1alpha1.AddToScheme(scheme))
 	utilruntime.Must(policyv1alpha1.AddToScheme(scheme))
 	//+kubebuilder:scaffold:scheme
+	klog.InitFlags(nil)
 }
 
 func main() {
@@ -106,6 +112,14 @@ func main() {
 		setupLog.Error(err, "unable to set up ready check")
 		os.Exit(1)
 	}
+
+	go func() {
+		stop := apiserver.SetupSignalHandler()
+		<-stop
+		cancel()
+	}()
+	server := server.NewPolicyServer(ctx, mgr)
+	go server.Run()
 
 	setupLog.Info("starting manager")
 	if err := mgr.Start(ctrl.SetupSignalHandler()); err != nil {
