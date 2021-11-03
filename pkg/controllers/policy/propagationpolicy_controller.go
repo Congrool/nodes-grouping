@@ -19,10 +19,8 @@ package policy
 import (
 	"context"
 
-	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/errors"
@@ -50,10 +48,6 @@ type PropagationPolicyReconciler struct {
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
-// TODO(user): Modify the Reconcile function to compare the state specified by
-// the PropagationPolicy object against the actual cluster state, and then
-// perform operations to make the cluster state reflect the state specified by
-// the user.
 //
 // For more details, check Reconcile and its Result here:
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.9.2/pkg/reconcile
@@ -62,7 +56,9 @@ func (r *PropagationPolicyReconciler) Reconcile(ctx context.Context, req ctrl.Re
 
 	policy := &policyv1alpha1.PropagationPolicy{}
 	if err := r.Client.Get(ctx, req.NamespacedName, policy); err != nil {
-		if apierrors.IsNotFound(err) {
+		if apierrors.IsNotFound(err) || policy.DeletionTimestamp != nil {
+			// TODO: handle delete event
+			// currently do nothing, leave the scheduled pods as they are.
 			return ctrl.Result{}, nil
 		}
 		return ctrl.Result{Requeue: true}, err
@@ -80,20 +76,23 @@ func (r *PropagationPolicyReconciler) Reconcile(ctx context.Context, req ctrl.Re
 		return ctrl.Result{}, nil
 	}
 
-	deploys := r.fetchManifestsResource(ctx, policy)
+	deploys, err := utils.GetManifestsDeploys(ctx, r.Client, policy)
+	if err != nil {
+		klog.Warningf("failed to get some deploys manifested by policy %s/%s, %v", policy.Namespace, policy.Name, err)
+	}
 
 	errs := []error{}
 	for _, deploy := range deploys {
-		podList, err := r.getPodListFromDeploy(ctx, deploy)
-		desiredClusterAndPods := desiredPodsNumInEachCluster(policy.Spec.Placement.StaticWeightList, *deploy.Spec.Replicas)
+		podList, err := utils.GetPodListFromDeploy(ctx, r.Client, deploy)
+		desiredPodsNumOfEachCluster := utils.DesiredPodsNumInTargetClusters(policy.Spec.Placement.StaticWeightList, *deploy.Spec.Replicas)
 		if err != nil {
 			klog.Errorf("failed to get pod list of deployment %s/%s, %v", deploy.Namespace, deploy.Name, err)
 			continue
 		}
 
-		deletePods := r.getPodsNeedToDelete(podList.Items, desiredClusterAndPods, nodesInClusters)
+		deletePods := r.getPodsNeedToDelete(podList.Items, desiredPodsNumOfEachCluster, nodesInClusters)
 		for _, pod := range deletePods {
-			if err := r.Client.Delete(ctx, pod); err != nil {
+			if err := r.Client.Delete(ctx, pod); err != nil && apierrors.IsNotFound(err) {
 				klog.Errorf("failed to delete pod %s/%s, %v", pod.Namespace, pod.Name, err)
 				errs = append(errs, err)
 			}
@@ -103,16 +102,11 @@ func (r *PropagationPolicyReconciler) Reconcile(ctx context.Context, req ctrl.Re
 	return ctrl.Result{}, errors.NewAggregate(errs)
 }
 
-func (r *PropagationPolicyReconciler) getPodListFromDeploy(ctx context.Context, deploy *appsv1.Deployment) (*corev1.PodList, error) {
-	labelselector, err := metav1.LabelSelectorAsSelector(deploy.Spec.Selector)
-	if err != nil {
-		return nil, err
-	}
-	podList := &corev1.PodList{}
-	if err := r.Client.List(ctx, podList, &client.ListOptions{LabelSelector: labelselector}); err != nil {
-		return nil, err
-	}
-	return podList, nil
+func (r *PropagationPolicyReconciler) SetupWithManager(mgr ctrl.Manager) error {
+	return ctrl.NewControllerManagedBy(mgr).
+		For(&policyv1alpha1.PropagationPolicy{}).
+		Watches(&source.Kind{Type: &clusterv1alpha1.Cluster{}}, handler.EnqueueRequestsFromMapFunc(r.newClusterMapFunc)).
+		Complete(r)
 }
 
 func (r *PropagationPolicyReconciler) getPodsNeedToDelete(pods []corev1.Pod, desiredPods map[string]int, nodesInClusters map[string]string) []*corev1.Pod {
@@ -135,28 +129,6 @@ func (r *PropagationPolicyReconciler) getPodsNeedToDelete(pods []corev1.Pod, des
 }
 
 // SetupWithManager sets up the controller with the Manager.
-func (r *PropagationPolicyReconciler) SetupWithManager(mgr ctrl.Manager) error {
-	return ctrl.NewControllerManagedBy(mgr).
-		For(&policyv1alpha1.PropagationPolicy{}).
-		Watches(&source.Kind{Type: &clusterv1alpha1.Cluster{}}, handler.EnqueueRequestsFromMapFunc(r.newClusterMapFunc)).
-		Complete(r)
-}
-
-func (r *PropagationPolicyReconciler) fetchManifestsResource(ctx context.Context, policy *policyv1alpha1.PropagationPolicy) []*appsv1.Deployment {
-	deploys := []*appsv1.Deployment{}
-	for _, selector := range policy.Spec.ResourceSelectors {
-		deploy := &appsv1.Deployment{}
-		key := types.NamespacedName{Namespace: selector.Namespace, Name: selector.Name}
-		err := r.Client.Get(ctx, key, deploy)
-		if err != nil {
-			klog.Errorf("failed to get deployment namespace: %s name: %s, %v", selector.Namespace, selector.Name)
-			continue
-		}
-		deploys = append(deploys, deploy)
-	}
-	return deploys
-}
-
 func (p *PropagationPolicyReconciler) newClusterMapFunc(obj client.Object) []ctrl.Request {
 	clusterobj := obj.(*clusterv1alpha1.Cluster)
 	policyList := &policyv1alpha1.PropagationPolicyList{}
@@ -192,26 +164,6 @@ func (p *PropagationPolicyReconciler) newClusterMapFunc(obj client.Object) []ctr
 				}})
 		}
 	})
-
-	return results
-}
-
-func desiredPodsNumInEachCluster(weights []policyv1alpha1.StaticClusterWeight, replicaNum int32) map[string]int {
-	var sum int64
-	results := make(map[string]int)
-	for _, weight := range weights {
-		for range weight.TargetCluster.ClusterNames {
-			sum += weight.Weight
-		}
-	}
-
-	for _, weight := range weights {
-		ratio := float64(weight.Weight) / float64(sum)
-		desiredNum := int(ratio*float64(replicaNum) + 0.5)
-		for _, cluster := range weight.TargetCluster.ClusterNames {
-			results[cluster] = desiredNum
-		}
-	}
 
 	return results
 }
