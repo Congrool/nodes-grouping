@@ -5,7 +5,7 @@ metadata:
   name: propagationpolicy-editor-role
 rules:
 - apiGroups:
-  - policy.harmonycloud.io
+  - policy.kubeedge.io
   resources:
   - propagationpolicies
   verbs:
@@ -17,7 +17,7 @@ rules:
   - update
   - watch
 - apiGroups:
-  - policy.harmonycloud.io
+  - policy.kubeedge.io
   resources:
   - propagationpolicies/status
   verbs:

@@ -8,4 +8,4 @@ webhook:
   port: 9443
 leaderElection:
   leaderElect: true
-  resourceName: e0dbdba5.harmonycloud.io
+  resourceName: e0dbdba5.kubeedge.io

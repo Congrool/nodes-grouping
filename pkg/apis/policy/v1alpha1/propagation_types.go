@@ -23,8 +23,8 @@ import (
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
 
-// PropagationSpec represents the desired behavior of PropagationPolicy.
-type PropagationSpec struct {
+// PropagationPolicySpec represents the desired behavior of PropagationPolicy.
+type PropagationPolicySpec struct {
 	// ResourceSelectors used to select resources.
 	// +required
 	ResourceSelectors []ResourceSelector `json:"resourceSelectors"`
@@ -52,7 +52,7 @@ type PropagationPolicy struct {
 
 	// Spec represents the desired behavior of PropagationPolicy.
 	// +required
-	Spec PropagationSpec `json:"spec"`
+	Spec PropagationPolicySpec `json:"spec"`
 }
 
 //+kubebuilder:object:root=true
@@ -89,11 +89,6 @@ type ResourceSelector struct {
 	// +optional
 	LabelSelector *metav1.LabelSelector `json:"labelSelector,omitempty"`
 }
-
-// +genclient
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
-// +kubebuilder:resource:shortName=rsp
-// +kubebuilder:deprecatedversion
 
 // ClusterPreferences describes weight for each cluster or for each group of cluster.
 type ClusterPreferences struct {

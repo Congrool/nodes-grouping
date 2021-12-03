@@ -1,4 +1,4 @@
-apiVersion: policy.harmonycloud.io/v1alpha1
+apiVersion: policy.kubeedge.io/v1alpha1
 kind: PropagationPolicy
 metadata:
   name: propagationpolicy-sample

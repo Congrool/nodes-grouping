@@ -7,7 +7,7 @@ metadata:
   name: manager-role
 rules:
 - apiGroups:
-  - cluster.harmonycloud.io
+  - group.kubeedge.io
   resources:
   - clusters
   verbs:
@@ -19,13 +19,13 @@ rules:
   - update
   - watch
 - apiGroups:
-  - cluster.harmonycloud.io
+  - group.kubeedge.io
   resources:
   - clusters/finalizers
   verbs:
   - update
 - apiGroups:
-  - cluster.harmonycloud.io
+  - group.kubeedge.io
   resources:
   - clusters/status
   verbs:
@@ -33,7 +33,7 @@ rules:
   - patch
   - update
 - apiGroups:
-  - policy.harmonycloud.io
+  - policy.kubeedge.io
   resources:
   - propagationpolicies
   verbs:
@@ -45,13 +45,13 @@ rules:
   - update
   - watch
 - apiGroups:
-  - policy.harmonycloud.io
+  - policy.kubeedge.io
   resources:
   - propagationpolicies/finalizers
   verbs:
   - update
 - apiGroups:
-  - policy.harmonycloud.io
+  - policy.kubeedge.io
   resources:
   - propagationpolicies/status
   verbs:

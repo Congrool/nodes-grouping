@@ -28,8 +28,8 @@ BUNDLE_METADATA_OPTS ?= $(BUNDLE_CHANNELS) $(BUNDLE_DEFAULT_CHANNEL)
 # This variable is used to construct full image tags for bundle and catalog images.
 #
 # For example, running 'make bundle-build bundle-push catalog-build catalog-push' will build and push both
-# harmonycloud.io/nodes-grouping-bundle:$VERSION and harmonycloud.io/nodes-grouping-catalog:$VERSION.
-IMAGE_TAG_BASE ?= harmonycloud.io/nodes-grouping
+# kubeedge.io/nodes-grouping-bundle:$VERSION and kubeedge.io/nodes-grouping-catalog:$VERSION.
+IMAGE_TAG_BASE ?= kubeedge.io/nodes-grouping
 
 # BUNDLE_IMG defines the image:tag used for the bundle.
 # You can use it as an arg. (E.g make bundle-build BUNDLE_IMG=<some-registry>/<project-name-bundle>:<tag>)

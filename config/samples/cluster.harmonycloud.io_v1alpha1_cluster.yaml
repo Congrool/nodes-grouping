@@ -1,4 +1,4 @@
-apiVersion: cluster.harmonycloud.io/v1alpha1
+apiVersion: group.kubeedge.io/v1alpha1
 kind: Cluster
 metadata:
   name: cluster-sample
