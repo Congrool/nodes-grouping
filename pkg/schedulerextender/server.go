@@ -42,7 +42,7 @@ func NewPolicyServer(ctx context.Context, client client.Client) Server {
 }
 
 func (s *server) Run() {
-	klog.Info("starting scheduler extender server, waiting for cache sync")
+	klog.Info("starting scheduler extender server")
 	go func() {
 		err := s.httpserver.ListenAndServe()
 		if err != nil {

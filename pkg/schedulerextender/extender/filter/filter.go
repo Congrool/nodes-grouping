@@ -66,6 +66,9 @@ func (f *filter) Filter(extenderArgs *extenderv1.ExtenderArgs) (*extenderv1.Exte
 }
 
 func (f *filter) constructFilterResult(nodes []corev1.Node) *extenderv1.ExtenderFilterResult {
+	if nodes == nil {
+		return &extenderv1.ExtenderFilterResult{}
+	}
 	filteredNodeNames := make([]string, len(nodes))
 	for i := range nodes {
 		filteredNodeNames[i] = nodes[i].Name
@@ -94,7 +97,7 @@ func New(ctx context.Context, client client.Client) Filter {
 
 func WithFilterHandler(filterFunc func(*extenderv1.ExtenderArgs) (*extenderv1.ExtenderFilterResult, error)) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		var extenderArgs *extenderv1.ExtenderArgs
+		extenderArgs := &extenderv1.ExtenderArgs{}
 		var extenderResults *extenderv1.ExtenderFilterResult
 
 		defer func() {

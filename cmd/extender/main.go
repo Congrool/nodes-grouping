@@ -1,4 +1,4 @@
-package extender
+package main
 
 import (
 	"context"
