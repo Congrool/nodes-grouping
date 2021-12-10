@@ -22,7 +22,7 @@ spec:
     schema:
       openAPIV3Schema:
         description: PropagationPolicy represents the policy that propagates a group
-          of resources to one or more clusters.
+          of resources to one or more nodegroups.
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation
@@ -40,28 +40,28 @@ spec:
             description: Spec represents the desired behavior of PropagationPolicy.
             properties:
               placement:
-                description: Placement represents the rule for select clusters to
+                description: Placement represents the rule for select nodegroups to
                   propagate resources.
                 properties:
                   staticWeightList:
-                    description: StaticWeightList defines the static cluster weight.
+                    description: StaticWeightList defines the static nodegroup weight.
                     items:
-                      description: StaticClusterWeight defines the static cluster
+                      description: StaticNodeGroupWeight defines the static NodeGroup
                         weight.
                       properties:
-                        clusterNames:
-                          description: ClusterNames specifies clusters with names.
+                        nodeGroupNames:
+                          description: NodeGroupNames specifies nodegroups with names.
                           items:
                             type: string
                           type: array
                         weight:
-                          description: Weight expressing the preference to the cluster(s)
-                            specified by 'TargetCluster'.
+                          description: Weight expressing the preference to the nodegroup(s)
+                            specified by 'TargetNodeGroup'.
                           format: int64
                           minimum: 1
                           type: integer
                       required:
-                      - clusterNames
+                      - nodeGroupNames
                       - weight
                       type: object
                     type: array

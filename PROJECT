@@ -10,18 +10,18 @@ repo: github.com/Congrool/nodes-grouping
 resources:
 - api:
     crdVersion: v1
-    namespaced: true
+    namespaced: false
   controller: true
-  domain: harmonycloud.io
-  group: cluster.harmonycloud.io
-  kind: Cluster
-  path: github.com/Congrool/nodes-grouping/api/v1alpha1
+  domain: kubeedge.io
+  group: group.kubeedge.io
+  kind: NodeGroup
+  path: github.com/Congrool/nodes-grouping/apis/group/v1alpha1
   version: v1alpha1
 - api:
     crdVersion: v1
     namespaced: true
   controller: true
-  domain: harmonycloud.io
+  domain: kubeedge.io
   group: policy
   kind: PropagationPolicy
   path: github.com/Congrool/nodes-grouping/apis/policy/v1alpha1

@@ -26,10 +26,12 @@ import (
 // NodeGroupSpec defines the desired state of NodeGroup
 type NodeGroupSpec struct {
 	// Nodes contains names of all the nodes in the nodegroup.
-	Nodes []string `json:"nodes"`
+	// +optional
+	Nodes []string `json:"nodes,omitempty"`
 
 	// MatchLabels match the nodes that have the labels
-	MatchLabels map[string]string `json:"matchLables,omitempty"`
+	// +optional
+	MatchLabels map[string]string `json:"matchLabels,omitempty"`
 }
 
 // NodeGroupStatus defines the observed state of NodeGroup
@@ -39,9 +41,11 @@ type NodeGroupStatus struct {
 	ContainedNodes []string `json:"containedNodes,omitempty"`
 }
 
+//+kubebuilder:resource:scope="Cluster"
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status
 //+kubebuilder:storageversion
+//+kubebuilder:resource:shortName=ng
 
 // NodeGroup is the Schema for the nodegroups API
 type NodeGroup struct {
@@ -49,9 +53,19 @@ type NodeGroup struct {
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
 	// Spec represents the specification of the desired behavior of member nodegroup.
+	// +required
 	Spec NodeGroupSpec `json:"spec"`
 
 	// Status represents the status of member nodegroup.
 	// +optional
 	Status NodeGroupStatus `json:"status,omitempty"`
+}
+
+//+kubebuilder:object:root=true
+
+// PropagationPolicyList contains a list of PropagationPolicy
+type NodeGroupList struct {
+	metav1.TypeMeta `json:",inline"`
+	metav1.ListMeta `json:"metadata,omitempty"`
+	Items           []NodeGroup `json:"items"`
 }

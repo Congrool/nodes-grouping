@@ -13,6 +13,8 @@ spec:
     kind: NodeGroup
     listKind: NodeGroupList
     plural: nodegroups
+    shortNames:
+    - ng
     singular: nodegroup
   scope: Namespaced
   versions:
@@ -37,7 +39,7 @@ spec:
             description: Spec represents the specification of the desired behavior
               of member nodegroup.
             properties:
-              matchLables:
+              matchLabels:
                 additionalProperties:
                   type: string
                 description: MatchLabels match the nodes that have the labels
@@ -47,8 +49,6 @@ spec:
                 items:
                   type: string
                 type: array
-            required:
-            - nodes
             type: object
           status:
             description: Status represents the status of member nodegroup.

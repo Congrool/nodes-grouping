@@ -29,14 +29,14 @@ type PropagationPolicySpec struct {
 	// +required
 	ResourceSelectors []ResourceSelector `json:"resourceSelectors"`
 
-	// Placement represents the rule for select clusters to propagate resources.
+	// Placement represents the rule for select nodegroups to propagate resources.
 	// +optional
-	Placement ClusterPreferences `json:"placement,omitempty"`
+	Placement NodeGroupPreferences `json:"placement,omitempty"`
 }
 
 // PropagationPolicyStatus defines the observed state of PropagationPolicy
 type PropagationPolicyStatus struct {
-	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
+	// INSERT ADDITIONAL STATUS FIELD - define observed state of nodegroup
 	// Important: Run "make" to regenerate code after modifying this file
 }
 
@@ -45,7 +45,7 @@ type PropagationPolicyStatus struct {
 //+kubebuilder:storageversion
 //+kubebuilder:resource:shortName=pp
 
-// PropagationPolicy represents the policy that propagates a group of resources to one or more clusters.
+// PropagationPolicy represents the policy that propagates a group of resources to one or more nodegroups.
 type PropagationPolicy struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
@@ -90,20 +90,20 @@ type ResourceSelector struct {
 	LabelSelector *metav1.LabelSelector `json:"labelSelector,omitempty"`
 }
 
-// ClusterPreferences describes weight for each cluster or for each group of cluster.
-type ClusterPreferences struct {
-	// StaticWeightList defines the static cluster weight.
+// NodeGroupPreferences describes weight for each nodegroups or for each group of nodegroup.
+type NodeGroupPreferences struct {
+	// StaticWeightList defines the static nodegroup weight.
 	// +required
-	StaticWeightList []StaticClusterWeight `json:"staticWeightList"`
+	StaticWeightList []StaticNodeGroupWeight `json:"staticWeightList"`
 }
 
-// StaticClusterWeight defines the static cluster weight.
-type StaticClusterWeight struct {
-	// ClusterNames specifies clusters with names.
+// StaticNodeGroupWeight defines the static NodeGroup weight.
+type StaticNodeGroupWeight struct {
+	// NodeGroupNames specifies nodegroups with names.
 	// +required
-	ClusterNames []string `json:"clusterNames"`
+	NodeGroupNames []string `json:"nodeGroupNames"`
 
-	// Weight expressing the preference to the cluster(s) specified by 'TargetCluster'.
+	// Weight expressing the preference to the nodegroup(s) specified by 'TargetNodeGroup'.
 	// +kubebuilder:validation:Minimum=1
 	// +required
 	Weight int64 `json:"weight"`

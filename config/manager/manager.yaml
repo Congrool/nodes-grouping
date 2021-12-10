@@ -2,55 +2,31 @@ apiVersion: v1
 kind: Namespace
 metadata:
   labels:
-    control-plane: controller-manager
-  name: system
+    control-plane: node-group-controller-manager
+  name: group-system
 ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: controller-manager
-  namespace: system
+  name: node-group-controller-manager
+  namespace: group-system
   labels:
-    control-plane: controller-manager
+    control-plane: node-group-controller-manager
 spec:
   selector:
     matchLabels:
-      control-plane: controller-manager
+      control-plane: node-group-controller-manager
   replicas: 1
   template:
     metadata:
       labels:
-        control-plane: controller-manager
+        control-plane: node-group-controller-manager
     spec:
-      securityContext:
-        runAsNonRoot: true
+      serviceAccountName: node-group-controller-manager
       containers:
       - command:
-        - /manager
-        args:
-        - --leader-elect
-        image: controller:latest
-        name: manager
-        securityContext:
-          allowPrivilegeEscalation: false
-        livenessProbe:
-          httpGet:
-            path: /healthz
-            port: 8081
-          initialDelaySeconds: 15
-          periodSeconds: 20
-        readinessProbe:
-          httpGet:
-            path: /readyz
-            port: 8081
-          initialDelaySeconds: 5
-          periodSeconds: 10
-        resources:
-          limits:
-            cpu: 200m
-            memory: 100Mi
-          requests:
-            cpu: 100m
-            memory: 20Mi
-      serviceAccountName: controller-manager
+        - /bin/node-group-controller-manager
+        image: kubeedge.io/node-group-controller-manager:latest
+        imagePullPolicy: IfNotPresent
+        name: node-group-controller-manager
       terminationGracePeriodSeconds: 10

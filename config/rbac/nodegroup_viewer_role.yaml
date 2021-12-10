@@ -1,24 +1,20 @@
-# permissions for end users to edit clusters.
+# permissions for end users to view propagationpolicies.
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  name: cluster-editor-role
+  name: nodegroup-viewer-role
 rules:
 - apiGroups:
   - group.kubeedge.io
   resources:
-  - clusters
+  - nodegroups
   verbs:
-  - create
-  - delete
   - get
   - list
-  - patch
-  - update
   - watch
 - apiGroups:
   - group.kubeedge.io
   resources:
-  - clusters/status
+  - nodegroups/status
   verbs:
   - get

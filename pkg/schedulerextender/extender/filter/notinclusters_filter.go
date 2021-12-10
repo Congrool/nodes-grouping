@@ -29,7 +29,7 @@ func (f *notInClustersFilter) FilterNodes(
 	// get all target clusters
 	var clusterNames []string
 	for _, targetWeight := range policy.Spec.Placement.StaticWeightList {
-		clusterNames = append(clusterNames, targetWeight.ClusterNames...)
+		clusterNames = append(clusterNames, targetWeight.NodeGroupNames...)
 	}
 	clusters, err := utils.GetClustersWithName(ctx, client, clusterNames)
 	if err != nil {

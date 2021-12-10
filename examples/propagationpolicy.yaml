@@ -1,0 +1,14 @@
+apiVersion: policy.kubeedge.io/v1alpha1
+kind: PropagationPolicy
+metadata:
+  name: mypropagation
+spec:
+  resourceSelectors:
+  - apiVersion: apps/v1
+    kind: Deployment
+    name: nginx
+  placement:
+    staticWeightList:
+    - nodeGroupNames:
+      - beijing
+      weight: 1

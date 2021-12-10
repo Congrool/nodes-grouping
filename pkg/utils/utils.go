@@ -92,11 +92,11 @@ func ParseNamespaceName(namespaceName string) (string, string, error) {
 	return "", "", fmt.Errorf("failed to parse NamespaceName of %s", namespaceName)
 }
 
-func DesiredPodsNumInTargetClusters(weights []policyv1alpha1.StaticClusterWeight, replicaNum int32) map[string]int {
+func DesiredPodsNumInTargetClusters(weights []policyv1alpha1.StaticNodeGroupWeight, replicaNum int32) map[string]int {
 	var sum int64
 	results := make(map[string]int)
 	for _, weight := range weights {
-		for range weight.ClusterNames {
+		for range weight.NodeGroupNames {
 			sum += weight.Weight
 		}
 	}
@@ -104,7 +104,7 @@ func DesiredPodsNumInTargetClusters(weights []policyv1alpha1.StaticClusterWeight
 	for _, weight := range weights {
 		ratio := float64(weight.Weight) / float64(sum)
 		desiredNum := int(ratio*float64(replicaNum) + 0.5)
-		for _, cluster := range weight.ClusterNames {
+		for _, cluster := range weight.NodeGroupNames {
 			results[cluster] = desiredNum
 		}
 	}
@@ -127,7 +127,7 @@ func GetPodListFromDeploy(ctx context.Context, client runtimeClient.Client, depl
 func CurrentPodsNumInTargetClusters(ctx context.Context, client runtimeClient.Client, deploy *appsv1.Deployment, policy *policyv1alpha1.PropagationPolicy) (map[string]int, map[string]string, error) {
 	targetClusterNames := []string{}
 	for _, weight := range policy.Spec.Placement.StaticWeightList {
-		targetClusterNames = append(targetClusterNames, weight.ClusterNames...)
+		targetClusterNames = append(targetClusterNames, weight.NodeGroupNames...)
 	}
 
 	clusters, err := GetClustersWithName(ctx, client, targetClusterNames)
