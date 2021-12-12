@@ -1,4 +1,4 @@
-domain: harmonycloud.io
+domain: kubeedge.io
 layout:
 - go.kubebuilder.io/v3
 multigroup: true
