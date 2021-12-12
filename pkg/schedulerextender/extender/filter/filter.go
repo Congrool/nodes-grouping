@@ -90,7 +90,7 @@ func New(ctx context.Context, client client.Client) Filter {
 		client: client,
 		filterPlugins: []FilterPlugin{
 			&enoughPodsFilter{},
-			&notInClustersFilter{},
+			&notInNodeGroupsFilter{},
 		},
 	}
 }

@@ -16,6 +16,7 @@ import (
 	"github.com/Congrool/nodes-grouping/cmd/controller-manager/app/options"
 	groupv1alpha1 "github.com/Congrool/nodes-grouping/pkg/apis/group/v1alpha1"
 	groupcontroller "github.com/Congrool/nodes-grouping/pkg/controllers/group"
+	policycontroller "github.com/Congrool/nodes-grouping/pkg/controllers/policy"
 )
 
 // aggregatedScheme aggregates Kubernetes and extended schemems.
@@ -34,7 +35,8 @@ func NewControllerManagerCommand(ctx context.Context) *cobra.Command {
 		Use:  "node-group-controller-manager",
 		Long: `The node group controller manager run a bunch of controllers`,
 		RunE: func(cmd *cobra.Command, args []string) error {
-
+			// TODO:
+			// need validation of opts
 			return Run(ctx, opts)
 		},
 	}
@@ -99,8 +101,16 @@ func setupControllers(mgr controllerruntime.Manager, opts *options.Options, stop
 		EventRecorder: mgr.GetEventRecorderFor(groupcontroller.ControllerName),
 	}
 
+	propogationPolicyController := &policycontroller.Controller{
+		Client: mgr.GetClient(),
+		Scheme: mgr.GetScheme(),
+	}
+
 	klog.Infoln("setupControllers")
 	if err := nodeGroupController.SetupWithManager(mgr); err != nil {
 		klog.Errorf("Failed to setup nodegroup controller: %v", err)
+	}
+	if err := propogationPolicyController.SetupWithManager(mgr); err != nil {
+		klog.Errorf("Failed to setup propogation policy controller: %v", err)
 	}
 }

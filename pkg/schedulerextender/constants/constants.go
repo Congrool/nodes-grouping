@@ -6,8 +6,8 @@ const (
 	ServerListeningPort = "10053"
 
 	// filter plugin names
-	NotInClustersFilterPluginName = "NotInClusterFilter"
-	EnoughPodsFilterPluginName    = "EnoughPodsFilter"
+	NotInNodeGroupsFilterPluginName = "NotInNodeGroupsFilter"
+	EnoughPodsFilterPluginName      = "EnoughPodsFilter"
 
 	// prioritize plugin names
 	DiffBasedPrioritizePluginName = "DiffBasedPrioritize"

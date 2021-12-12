@@ -9,7 +9,6 @@ import (
 	groupv1alpha1 "github.com/Congrool/nodes-grouping/pkg/apis/group/v1alpha1"
 	policyv1alpha1 "github.com/Congrool/nodes-grouping/pkg/apis/policy/v1alpha1"
 	appsv1 "k8s.io/api/apps/v1"
-	v1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
@@ -30,13 +29,13 @@ func WithCheck(handler http.Handler) http.Handler {
 	})
 }
 
-func GetNodesInClusters(ctx context.Context, client runtimeClient.Client, groups []groupv1alpha1.NodeGroup) (map[string]string, error) {
-	nodesInClusters := make(map[string]string)
+func GetNodesInGroups(ctx context.Context, client runtimeClient.Client, groups []groupv1alpha1.NodeGroup) (map[string]string, error) {
+	nodesInGroups := make(map[string]string)
 	for _, group := range groups {
 		labelSelector := metav1.SetAsLabelSelector(group.Spec.MatchLabels)
 		selector, err := metav1.LabelSelectorAsSelector(labelSelector)
 		if err != nil {
-			klog.Errorf("failed to get list selector according to matchLabels of cluster: %s, err %v", group.Name, err)
+			klog.Errorf("failed to get list selector according to matchLabels of nodegroup: %s, err %v", group.Name, err)
 			return nil, err
 		}
 		nodeList := &corev1.NodeList{}
@@ -45,24 +44,24 @@ func GetNodesInClusters(ctx context.Context, client runtimeClient.Client, groups
 			return nil, err
 		}
 		for i := range nodeList.Items {
-			nodesInClusters[nodeList.Items[i].Name] = group.Name
+			nodesInGroups[nodeList.Items[i].Name] = group.Name
 		}
 	}
 
-	return nodesInClusters, nil
+	return nodesInGroups, nil
 }
 
-func GetClustersWithName(ctx context.Context, client runtimeClient.Client, clusterName []string) ([]groupv1alpha1.NodeGroup, error) {
-	clusters := []groupv1alpha1.NodeGroup{}
-	for _, name := range clusterName {
-		cluster := &groupv1alpha1.NodeGroup{}
-		if err := client.Get(ctx, runtimeClient.ObjectKey{Name: name}, cluster); err != nil {
-			klog.Errorf("failed to get cluster obj %s, %v", name, err)
+func GetNodeGroupsWithName(ctx context.Context, client runtimeClient.Client, nodeGroupName []string) ([]groupv1alpha1.NodeGroup, error) {
+	nodegroup := []groupv1alpha1.NodeGroup{}
+	for _, name := range nodeGroupName {
+		group := &groupv1alpha1.NodeGroup{}
+		if err := client.Get(ctx, runtimeClient.ObjectKey{Name: name}, group); err != nil {
+			klog.Errorf("failed to get group obj %s, %v", name, err)
 			return nil, err
 		}
-		clusters = append(clusters, *cluster)
+		nodegroup = append(nodegroup, *group)
 	}
-	return clusters, nil
+	return nodegroup, nil
 }
 
 func GetManifestsDeploys(ctx context.Context, client runtimeClient.Client, policy *policyv1alpha1.PropagationPolicy) ([]*appsv1.Deployment, error) {
@@ -92,7 +91,7 @@ func ParseNamespaceName(namespaceName string) (string, string, error) {
 	return "", "", fmt.Errorf("failed to parse NamespaceName of %s", namespaceName)
 }
 
-func DesiredPodsNumInTargetClusters(weights []policyv1alpha1.StaticNodeGroupWeight, replicaNum int32) map[string]int {
+func DesiredPodsNumInTargetNodeGroups(weights []policyv1alpha1.StaticNodeGroupWeight, replicaNum int32) map[string]int {
 	var sum int64
 	results := make(map[string]int)
 	for _, weight := range weights {
@@ -104,8 +103,14 @@ func DesiredPodsNumInTargetClusters(weights []policyv1alpha1.StaticNodeGroupWeig
 	for _, weight := range weights {
 		ratio := float64(weight.Weight) / float64(sum)
 		desiredNum := int(ratio*float64(replicaNum) + 0.5)
-		for _, cluster := range weight.NodeGroupNames {
-			results[cluster] = desiredNum
+		currentSum := 0
+		for i, group := range weight.NodeGroupNames {
+			if i == len(weight.NodeGroupNames)-1 {
+				// avoid sum of desired pods != replicaNum
+				results[group] = int(replicaNum) - currentSum
+			}
+			results[group] = desiredNum
+			currentSum += desiredNum
 		}
 	}
 
@@ -124,21 +129,21 @@ func GetPodListFromDeploy(ctx context.Context, client runtimeClient.Client, depl
 	return podList, nil
 }
 
-func CurrentPodsNumInTargetClusters(ctx context.Context, client runtimeClient.Client, deploy *appsv1.Deployment, policy *policyv1alpha1.PropagationPolicy) (map[string]int, map[string]string, error) {
-	targetClusterNames := []string{}
+func CurrentPodsNumInTargetNodeGroups(ctx context.Context, client runtimeClient.Client, deploy *appsv1.Deployment, policy *policyv1alpha1.PropagationPolicy) (map[string]int, map[string]string, error) {
+	targetNodeGroupNames := []string{}
 	for _, weight := range policy.Spec.Placement.StaticWeightList {
-		targetClusterNames = append(targetClusterNames, weight.NodeGroupNames...)
+		targetNodeGroupNames = append(targetNodeGroupNames, weight.NodeGroupNames...)
 	}
 
-	clusters, err := GetClustersWithName(ctx, client, targetClusterNames)
+	groups, err := GetNodeGroupsWithName(ctx, client, targetNodeGroupNames)
 	if err != nil {
-		return nil, nil, fmt.Errorf("failed to get clusters according to their names for deploy %s/%s, policy %s/%s , %v",
+		return nil, nil, fmt.Errorf("failed to get nodegroups according to their names for deploy %s/%s, policy %s/%s , %v",
 			deploy.Namespace, deploy.Name, policy.Namespace, policy.Name, err)
 	}
 
-	nodesInClusters, err := GetNodesInClusters(ctx, client, clusters)
+	nodesInGroups, err := GetNodesInGroups(ctx, client, groups)
 	if err != nil {
-		return nil, nil, fmt.Errorf("failed to get nodes in clusters for deploy %s/%s, policy %s/%s, %v",
+		return nil, nil, fmt.Errorf("failed to get nodes in nodegroups for deploy %s/%s, policy %s/%s, %v",
 			deploy.Namespace, deploy.Name, policy.Namespace, policy.Name, err)
 	}
 
@@ -147,21 +152,21 @@ func CurrentPodsNumInTargetClusters(ctx context.Context, client runtimeClient.Cl
 		return nil, nil, fmt.Errorf("failed to get podlist for deploy %s/%s", deploy.Namespace, deploy.Name)
 	}
 
-	currentPodsInTargetClusters := map[string]int{}
+	currentPodsInTargetNodeGroups := map[string]int{}
 	for _, pod := range podList.Items {
 		if pod.Spec.NodeName == "" {
 			// ignore no scheduled pod
 			continue
 		}
-		cluster, ok := nodesInClusters[pod.Spec.NodeName]
+		group, ok := nodesInGroups[pod.Spec.NodeName]
 		if !ok {
 			// It should be solved by PropagationPolicy controller instead of the scheduler extender.
-			klog.Warningf("find pod running on the node %s which is not in target clusters, ignore it")
+			klog.Warningf("find pod running on the node %s which is not in target nodegroups, ignore it")
 			continue
 		}
-		currentPodsInTargetClusters[cluster]++
+		currentPodsInTargetNodeGroups[group]++
 	}
-	return currentPodsInTargetClusters, nodesInClusters, nil
+	return currentPodsInTargetNodeGroups, nodesInGroups, nil
 }
 
 func GetRelativeDeployment(ctx context.Context, client runtimeClient.Client, pod *corev1.Pod, policy *policyv1alpha1.PropagationPolicy) (*appsv1.Deployment, error) {
@@ -171,7 +176,7 @@ func GetRelativeDeployment(ctx context.Context, client runtimeClient.Client, pod
 	}
 
 	// get deployment relative to the pod
-	var relativeDeploy *v1.Deployment
+	var relativeDeploy *appsv1.Deployment
 	for _, deploy := range deploys {
 		selector, err := metav1.LabelSelectorAsSelector(deploy.Spec.Selector)
 		if err != nil {

@@ -11,41 +11,41 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-var _ FilterPlugin = &notInClustersFilter{}
+var _ FilterPlugin = &notInNodeGroupsFilter{}
 
-type notInClustersFilter struct{}
+// filterNodesNotInNodeGroups will filter nodes that not in the target nodegroups.
+type notInNodeGroupsFilter struct{}
 
-func (f *notInClustersFilter) Name() string {
-	return constants.NotInClustersFilterPluginName
+func (f *notInNodeGroupsFilter) Name() string {
+	return constants.NotInNodeGroupsFilterPluginName
 }
 
-// filterNodesNotInClusters will filter nodes that not in the target clusters.
-func (f *notInClustersFilter) FilterNodes(
+func (f *notInNodeGroupsFilter) FilterNodes(
 	ctx context.Context,
 	client client.Client,
 	pod *corev1.Pod,
 	nodes []corev1.Node,
 	policy *policyv1alpha1.PropagationPolicy) ([]corev1.Node, error) {
-	// get all target clusters
-	var clusterNames []string
+	// get all target nodegroups
+	var nodeGroupNames []string
 	for _, targetWeight := range policy.Spec.Placement.StaticWeightList {
-		clusterNames = append(clusterNames, targetWeight.NodeGroupNames...)
+		nodeGroupNames = append(nodeGroupNames, targetWeight.NodeGroupNames...)
 	}
-	clusters, err := utils.GetClustersWithName(ctx, client, clusterNames)
+	nodegroups, err := utils.GetNodeGroupsWithName(ctx, client, nodeGroupNames)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get clusters obj according to their names, err: %v", err)
+		return nil, fmt.Errorf("failed to get nodegroup obj according to their names, err: %v", err)
 	}
 
-	// get map that map node to cluster it belongs to
-	nodesInClusters, err := utils.GetNodesInClusters(ctx, client, clusters)
+	// get map that map node to nodegroup it belongs to
+	nodesInGroups, err := utils.GetNodesInGroups(ctx, client, nodegroups)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get nodes in clusters when filter the nodes, %v", err)
+		return nil, fmt.Errorf("failed to get nodes in nodegroup when filter the nodes, %v", err)
 	}
 
-	// filter nodes that are not in target clusters
+	// filter nodes that are not in target nodegroups
 	filterdNodes := []corev1.Node{}
 	for _, node := range nodes {
-		if _, ok := nodesInClusters[node.Name]; ok {
+		if _, ok := nodesInGroups[node.Name]; ok {
 			filterdNodes = append(filterdNodes, node)
 		}
 	}

@@ -19,7 +19,7 @@ func (f *enoughPodsFilter) Name() string {
 	return constants.EnoughPodsFilterPluginName
 }
 
-// filterNodesHasEnoughPods will filter nodes in clusters
+// filterNodesHasEnoughPods will filter nodes in nodegroups
 // which have already had enough pods as desired in the policy.
 func (f *enoughPodsFilter) FilterNodes(
 	ctx context.Context,
@@ -33,18 +33,18 @@ func (f *enoughPodsFilter) FilterNodes(
 			pod.Namespace, pod.Name, err)
 	}
 
-	desiredPodsNumOfEachCluster := utils.DesiredPodsNumInTargetClusters(policy.Spec.Placement.StaticWeightList, *relativeDeploy.Spec.Replicas)
-	currentPodsNumOfEachCluster, nodesInCluter, err := utils.CurrentPodsNumInTargetClusters(ctx, client, relativeDeploy, policy)
+	desiredPodsNumOfEachNodeGroup := utils.DesiredPodsNumInTargetNodeGroups(policy.Spec.Placement.StaticWeightList, *relativeDeploy.Spec.Replicas)
+	currentPodsNumOfEachNodeGroup, nodesInNodeGroup, err := utils.CurrentPodsNumInTargetNodeGroups(ctx, client, relativeDeploy, policy)
 
 	if err != nil {
-		return nil, fmt.Errorf("failed to get current number of pods in each target clusters for deploy %s/%s, %v",
+		return nil, fmt.Errorf("failed to get current number of pods in each target nodegroups for deploy %s/%s, %v",
 			relativeDeploy.Namespace, relativeDeploy.Name, err)
 	}
 
 	filteredNodes := []corev1.Node{}
 	for _, node := range nodes {
-		cluster := nodesInCluter[node.Name]
-		if currentPodsNumOfEachCluster[cluster] < desiredPodsNumOfEachCluster[cluster] {
+		nodegroup := nodesInNodeGroup[node.Name]
+		if currentPodsNumOfEachNodeGroup[nodegroup] < desiredPodsNumOfEachNodeGroup[nodegroup] {
 			filteredNodes = append(filteredNodes, node)
 		}
 	}

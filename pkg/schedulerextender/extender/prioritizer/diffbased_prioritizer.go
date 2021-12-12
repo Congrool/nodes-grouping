@@ -16,17 +16,17 @@ import (
 
 var _ PrioritizerPlugin = &diffBasedPrioritizePlugin{}
 
-type clusterItem struct {
-	clusterName string
-	podsNum     int
-	rank        int
+type nodeGroupItem struct {
+	nodeGroupName string
+	podsNum       int
+	rank          int
 }
 
-type clusterItemSlice []clusterItem
+type nodeGroupItemSlice []nodeGroupItem
 
-func (c clusterItemSlice) Len() int           { return len(c) }
-func (c clusterItemSlice) Less(i, j int) bool { return c[i].podsNum < c[j].podsNum }
-func (c clusterItemSlice) Swap(i, j int)      { c[i], c[j] = c[j], c[i] }
+func (c nodeGroupItemSlice) Len() int           { return len(c) }
+func (c nodeGroupItemSlice) Less(i, j int) bool { return c[i].podsNum < c[j].podsNum }
+func (c nodeGroupItemSlice) Swap(i, j int)      { c[i], c[j] = c[j], c[i] }
 
 type diffBasedPrioritizePlugin struct{}
 
@@ -42,34 +42,34 @@ func (p *diffBasedPrioritizePlugin) PrioritizeNodes(ctx context.Context, client 
 		return nil, fmt.Errorf("failed to get relative deployment for pod %s/%s when prioritizing nodes for it, %v",
 			pod.Namespace, pod.Name, err)
 	}
-	desiredPodsNumOfEachCluster := utils.DesiredPodsNumInTargetClusters(policy.Spec.Placement.StaticWeightList, *relativeDeploy.Spec.Replicas)
-	currentPodsNumOfEachCluster, nodesIncluster, err := utils.CurrentPodsNumInTargetClusters(ctx, client, relativeDeploy, policy)
+	desiredPodsNumOfEachNodeGroup := utils.DesiredPodsNumInTargetNodeGroups(policy.Spec.Placement.StaticWeightList, *relativeDeploy.Spec.Replicas)
+	currentPodsNumOfEachNodeGroup, nodesInNodeGroup, err := utils.CurrentPodsNumInTargetNodeGroups(ctx, client, relativeDeploy, policy)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get current pods number in clusters for pod %s/%s with policy %s/%s, %v",
+		return nil, fmt.Errorf("failed to get current pods number in nodegroup for pod %s/%s with policy %s/%s, %v",
 			pod.Namespace, pod.Name, policy.Namespace, policy.Name, err)
 	}
 
-	var diffList clusterItemSlice
-	for cluster, desiredNum := range desiredPodsNumOfEachCluster {
-		diffPodsNum := desiredNum - currentPodsNumOfEachCluster[cluster]
-		diffList = append(diffList, clusterItem{clusterName: cluster, podsNum: diffPodsNum})
+	var diffList nodeGroupItemSlice
+	for nodegroup, desiredNum := range desiredPodsNumOfEachNodeGroup {
+		diffPodsNum := desiredNum - currentPodsNumOfEachNodeGroup[nodegroup]
+		diffList = append(diffList, nodeGroupItem{nodeGroupName: nodegroup, podsNum: diffPodsNum})
 	}
-	diffList = sort.Reverse(diffList).(clusterItemSlice)
-	diffMap := make(map[string]clusterItem, diffList.Len())
+	diffList = sort.Reverse(diffList).(nodeGroupItemSlice)
+	diffMap := make(map[string]nodeGroupItem, diffList.Len())
 	for i := range diffList {
 		diffList[i].rank = i + 1
-		clusterName := diffList[i].clusterName
-		diffMap[clusterName] = diffList[i]
+		nodeGroupName := diffList[i].nodeGroupName
+		diffMap[nodeGroupName] = diffList[i]
 	}
 
 	priorityList := extenderv1.HostPriorityList{}
 	for _, nodename := range *args.NodeNames {
-		cluster, ok := nodesIncluster[nodename]
+		nodeGroup, ok := nodesInNodeGroup[nodename]
 		if !ok {
-			klog.Errorf("extender prioritizer get node %s which is not in target clusters, ignore it")
+			klog.Errorf("extender prioritizer get node %s which is not in target nodegroup, ignore it")
 			continue
 		}
-		ratio := (float64)(diffMap[cluster].rank) / (float64)(diffList.Len())
+		ratio := (float64)(diffMap[nodeGroup].rank) / (float64)(diffList.Len())
 		score := (int64)(10 - 10*ratio)
 		priorityList = append(priorityList, extenderv1.HostPriority{Host: nodename, Score: score})
 	}

@@ -28,6 +28,9 @@ const (
 // Controller is to sync NodeGroup.
 type Controller struct {
 	client.Client
+
+	// TODO:
+	// not used
 	EventRecorder record.EventRecorder
 }
 
