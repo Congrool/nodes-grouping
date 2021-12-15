@@ -34,6 +34,7 @@ func main() {
 	// ctrl.SetLogger(zap.New(zap.UseFlagOptions(&opts)))
 
 	config := ctrl.GetConfigOrDie()
+	defer klog.Flush()
 
 	client, err := client.New(config, client.Options{
 		Scheme: scheme,

@@ -1,10 +1,9 @@
 package prioritizer
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
-	"io"
+	"fmt"
 	"net/http"
 
 	corev1 "k8s.io/api/core/v1"
@@ -14,6 +13,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	policyv1alpha1 "github.com/Congrool/nodes-grouping/pkg/apis/policy/v1alpha1"
+	extenderutil "github.com/Congrool/nodes-grouping/pkg/schedulerextender/extender/utils"
 	"github.com/Congrool/nodes-grouping/pkg/utils"
 )
 
@@ -33,6 +33,10 @@ type prioritizer struct {
 }
 
 func (p *prioritizer) Prioritize(extenderArgs *extenderv1.ExtenderArgs) (*extenderv1.HostPriorityList, error) {
+	if extenderArgs == nil {
+		return nil, fmt.Errorf("empty extenderArgs")
+	}
+
 	args := extenderArgs.DeepCopy()
 	pod := args.Pod
 
@@ -67,11 +71,16 @@ func (p *prioritizer) Prioritize(extenderArgs *extenderv1.ExtenderArgs) (*extend
 }
 
 func (p *prioritizer) notScore(args *extenderv1.ExtenderArgs) (*extenderv1.HostPriorityList, error) {
-	nodeNames := *args.NodeNames
-	prioritList := make([]extenderv1.HostPriority, len(nodeNames))
-	for _, name := range nodeNames {
+	nodeList := args.Nodes
+	if nodeList == nil {
+		return &extenderv1.HostPriorityList{}, nil
+	}
+
+	nodesNum := len(nodeList.Items)
+	prioritList := make([]extenderv1.HostPriority, nodesNum)
+	for i := range nodeList.Items {
 		prioritList = append(prioritList, extenderv1.HostPriority{
-			Host:  name,
+			Host:  nodeList.Items[i].Name,
 			Score: 0,
 		})
 	}
@@ -119,21 +128,16 @@ func WithPrioritizeHander(prioritizeFunc func(*extenderv1.ExtenderArgs) (*extend
 			w.Write(responseBody)
 		}()
 
-		var buf bytes.Buffer
-		body := io.TeeReader(r.Body, &buf)
-
+		extenderArgs, err := extenderutil.ExtractExtenderArgsFromRequest(r)
 		// decode
-		if err := json.NewDecoder(body).Decode(extenderArgs); err != nil {
-			klog.Errorf("failed to decode filter extenderArgs, request: %s, %v", buf.String(), err)
+		if err != nil {
 			prioritizeHostList = nil
 			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
 
-		klog.V(4).Infof("get prioritize request info: %v", buf.String())
-
 		// do prioritize
-		prioritizeHostList, err := prioritizeFunc(extenderArgs)
+		prioritizeHostList, err = prioritizeFunc(extenderArgs)
 		if err != nil {
 			klog.Errorf("failed to run prioritize handler, err: %v", err)
 			prioritizeHostList = nil

@@ -1,14 +1,15 @@
 package filter
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
-	"io"
+	"fmt"
 	"net/http"
 
 	policyv1alpha1 "github.com/Congrool/nodes-grouping/pkg/apis/policy/v1alpha1"
+	extenderutil "github.com/Congrool/nodes-grouping/pkg/schedulerextender/extender/utils"
 	"github.com/Congrool/nodes-grouping/pkg/utils"
+
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/klog/v2"
@@ -34,6 +35,10 @@ type filter struct {
 }
 
 func (f *filter) Filter(extenderArgs *extenderv1.ExtenderArgs) (*extenderv1.ExtenderFilterResult, error) {
+	if extenderArgs == nil {
+		return nil, fmt.Errorf("empty extenderArgs")
+	}
+
 	args := extenderArgs.DeepCopy()
 	pod := args.Pod
 
@@ -97,9 +102,7 @@ func New(ctx context.Context, client client.Client) Filter {
 
 func WithFilterHandler(filterFunc func(*extenderv1.ExtenderArgs) (*extenderv1.ExtenderFilterResult, error)) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		extenderArgs := &extenderv1.ExtenderArgs{}
 		var extenderResults *extenderv1.ExtenderFilterResult
-
 		defer func() {
 			w.Header().Set("Content-Type", "application/json")
 			responseBody, err := json.Marshal(extenderResults)
@@ -110,22 +113,17 @@ func WithFilterHandler(filterFunc func(*extenderv1.ExtenderArgs) (*extenderv1.Ex
 			w.Write(responseBody)
 		}()
 
-		var buf bytes.Buffer
-		body := io.TeeReader(r.Body, &buf)
-
-		// decode
-		if err := json.NewDecoder(body).Decode(extenderArgs); err != nil {
-			klog.Errorf("failed to decode filter extenderArgs, request: %s, err: %v", buf.String(), err)
+		extenderArgs, err := extenderutil.ExtractExtenderArgsFromRequest(r)
+		if err != nil {
 			extenderResults = &extenderv1.ExtenderFilterResult{
 				Error: err.Error(),
 			}
 			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
-		klog.V(4).Infof("get filter request info: %v", buf.String())
 
 		// do filter
-		extenderResults, err := filterFunc(extenderArgs)
+		extenderResults, err = filterFunc(extenderArgs)
 		if err != nil {
 			klog.Errorf("failed to run filter handler, err: %v", err)
 			extenderResults = &extenderv1.ExtenderFilterResult{
