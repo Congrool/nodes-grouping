@@ -66,6 +66,11 @@ func (f *filter) Filter(extenderArgs *extenderv1.ExtenderArgs) (*extenderv1.Exte
 				filterPlugin.Name(), err)
 			errs = append(errs, err)
 		}
+		nodeNames := make([]string, len(nodes))
+		for _, node := range nodes {
+			nodeNames = append(nodeNames, node.Name)
+		}
+		klog.V(2).Infof("after filter plugin: %s, nodes: %v ", filterPlugin.Name(), nodeNames)
 	}
 	return f.constructFilterResult(nodes), errors.NewAggregate(errs)
 }

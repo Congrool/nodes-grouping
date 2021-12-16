@@ -55,7 +55,9 @@ func GetNodeGroupsWithName(ctx context.Context, client runtimeClient.Client, nod
 	nodegroup := []groupv1alpha1.NodeGroup{}
 	for _, name := range nodeGroupName {
 		group := &groupv1alpha1.NodeGroup{}
-		if err := client.Get(ctx, runtimeClient.ObjectKey{Name: name}, group); err != nil {
+		// TODO:
+		// do not use "default" as nodegroup namespace"
+		if err := client.Get(ctx, runtimeClient.ObjectKey{Name: name, Namespace: "default"}, group); err != nil {
 			klog.Errorf("failed to get group obj %s, %v", name, err)
 			return nil, err
 		}
@@ -95,22 +97,26 @@ func DesiredPodsNumInTargetNodeGroups(weights []policyv1alpha1.StaticNodeGroupWe
 	var sum int64
 	results := make(map[string]int)
 	for _, weight := range weights {
-		for range weight.NodeGroupNames {
-			sum += weight.Weight
-		}
+		sum += weight.Weight
 	}
 
 	for _, weight := range weights {
-		ratio := float64(weight.Weight) / float64(sum)
+		var ratio float64
+		if sum != 0 {
+			ratio = float64(weight.Weight) / float64(sum)
+		} else {
+			ratio = 0
+		}
+
 		desiredNum := int(ratio*float64(replicaNum) + 0.5)
-		currentSum := 0
-		for i, group := range weight.NodeGroupNames {
-			if i == len(weight.NodeGroupNames)-1 {
-				// avoid sum of desired pods != replicaNum
-				results[group] = int(replicaNum) - currentSum
+		results[weight.NodeGroupNames[0]] = desiredNum
+		if len(weight.NodeGroupNames) > 1 {
+			// TODO:
+			// support multi-nodegroup one entry
+			klog.Error("multi nodegroup in one weight entry is not supported, only the first one will be picked, other nodegroup will get 0 weight.")
+			for i := 2; i < len(weight.NodeGroupNames); i++ {
+				results[weight.NodeGroupNames[i]] = 0
 			}
-			results[group] = desiredNum
-			currentSum += desiredNum
 		}
 	}
 

@@ -15,6 +15,7 @@ import (
 
 	"github.com/Congrool/nodes-grouping/cmd/controller-manager/app/options"
 	groupv1alpha1 "github.com/Congrool/nodes-grouping/pkg/apis/group/v1alpha1"
+	policyv1alpha1 "github.com/Congrool/nodes-grouping/pkg/apis/policy/v1alpha1"
 	groupcontroller "github.com/Congrool/nodes-grouping/pkg/controllers/group"
 	policycontroller "github.com/Congrool/nodes-grouping/pkg/controllers/policy"
 )
@@ -25,6 +26,7 @@ var aggregatedScheme = runtime.NewScheme()
 func init() {
 	utilruntime.Must(scheme.AddToScheme(aggregatedScheme))
 	utilruntime.Must(groupv1alpha1.AddToScheme(aggregatedScheme))
+	utilruntime.Must(policyv1alpha1.AddToScheme(aggregatedScheme))
 }
 
 // NewControllerManagerCommand creates a *cobra.Command object with default parameters
@@ -101,16 +103,17 @@ func setupControllers(mgr controllerruntime.Manager, opts *options.Options, stop
 		EventRecorder: mgr.GetEventRecorderFor(groupcontroller.ControllerName),
 	}
 
-	propogationPolicyController := &policycontroller.Controller{
+	propagationPolicyController := &policycontroller.Controller{
 		Client: mgr.GetClient(),
-		Scheme: mgr.GetScheme(),
 	}
 
-	klog.Infoln("setupControllers")
+	klog.Infoln("setup nodegroup controller")
 	if err := nodeGroupController.SetupWithManager(mgr); err != nil {
 		klog.Errorf("Failed to setup nodegroup controller: %v", err)
 	}
-	if err := propogationPolicyController.SetupWithManager(mgr); err != nil {
+
+	klog.Infoln("setup propagationpolicy controller")
+	if err := propagationPolicyController.SetupWithManager(mgr); err != nil {
 		klog.Errorf("Failed to setup propogation policy controller: %v", err)
 	}
 }

@@ -130,3 +130,10 @@ GOBIN=$(PROJECT_DIR)/bin go get $(2) ;\
 rm -rf $$TMP_DIR ;\
 }
 endef
+
+
+build: clean
+	bash hack/build.sh
+
+clean:
+	rm -rf _output
