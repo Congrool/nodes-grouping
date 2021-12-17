@@ -6,7 +6,8 @@ spec:
   resourceSelectors:
   - apiVersion: apps/v1
     kind: Deployment
-    name: nginx
+    name: aghost-deploy
+    namespace: default
   placement:
     staticWeightList:
     - nodeGroupNames:

@@ -1,7 +1,7 @@
 apiVersion: group.kubeedge.io/v1alpha1
 kind: NodeGroup
 metadata:
-  name: mygroup
+  name: hangzhou
 spec:
   matchLabels:
-    kubernetes.io/hostname: master67
+    kubernetes.io/hostname: node1
