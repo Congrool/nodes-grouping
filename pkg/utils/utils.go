@@ -93,13 +93,19 @@ func ParseNamespaceName(namespaceName string) (string, string, error) {
 	return "", "", fmt.Errorf("failed to parse NamespaceName of %s", namespaceName)
 }
 
-func DesiredPodsNumInTargetNodeGroups(weights []policyv1alpha1.StaticNodeGroupWeight, replicaNum int32) map[string]int {
+func DesiredPodsNumInTargetNodeGroups(weights []policyv1alpha1.StaticNodeGroupWeight, replicaNum int32) map[string]int32 {
 	var sum int64
-	results := make(map[string]int)
+	results := make(map[string]int32)
+
+	if len(weights) == 0 {
+		return results
+	}
+
 	for _, weight := range weights {
 		sum += weight.Weight
 	}
 
+	var allocatedPodNum int32
 	for _, weight := range weights {
 		var ratio float64
 		if sum != 0 {
@@ -108,7 +114,7 @@ func DesiredPodsNumInTargetNodeGroups(weights []policyv1alpha1.StaticNodeGroupWe
 			ratio = 0
 		}
 
-		desiredNum := int(ratio*float64(replicaNum) + 0.5)
+		desiredNum := int32(ratio*float64(replicaNum) + 0.5)
 		results[weight.NodeGroupNames[0]] = desiredNum
 		if len(weight.NodeGroupNames) > 1 {
 			// TODO:
@@ -117,6 +123,19 @@ func DesiredPodsNumInTargetNodeGroups(weights []policyv1alpha1.StaticNodeGroupWe
 			for i := 2; i < len(weight.NodeGroupNames); i++ {
 				results[weight.NodeGroupNames[i]] = 0
 			}
+		}
+
+		allocatedPodNum += desiredNum
+	}
+
+	// TODO:
+	// consider how to allocate left pods when (replicaNum % sum != 0)
+	// currently add all of them to one of the nodegroups.
+	leftPodNum := replicaNum - allocatedPodNum
+	if leftPodNum != 0 {
+		for nodegroup := range results {
+			results[nodegroup] += leftPodNum
+			break
 		}
 	}
 
@@ -135,7 +154,7 @@ func GetPodListFromDeploy(ctx context.Context, client runtimeClient.Client, depl
 	return podList, nil
 }
 
-func CurrentPodsNumInTargetNodeGroups(ctx context.Context, client runtimeClient.Client, deploy *appsv1.Deployment, policy *policyv1alpha1.PropagationPolicy) (map[string]int, map[string]string, error) {
+func CurrentPodsNumInTargetNodeGroups(ctx context.Context, client runtimeClient.Client, deploy *appsv1.Deployment, policy *policyv1alpha1.PropagationPolicy) (map[string]int32, map[string]string, error) {
 	targetNodeGroupNames := []string{}
 	for _, weight := range policy.Spec.Placement.StaticWeightList {
 		targetNodeGroupNames = append(targetNodeGroupNames, weight.NodeGroupNames...)
@@ -158,7 +177,7 @@ func CurrentPodsNumInTargetNodeGroups(ctx context.Context, client runtimeClient.
 		return nil, nil, fmt.Errorf("failed to get podlist for deploy %s/%s", deploy.Namespace, deploy.Name)
 	}
 
-	currentPodsInTargetNodeGroups := map[string]int{}
+	currentPodsInTargetNodeGroups := map[string]int32{}
 	for _, pod := range podList.Items {
 		if pod.Spec.NodeName == "" {
 			// ignore no scheduled pod

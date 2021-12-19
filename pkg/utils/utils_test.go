@@ -11,7 +11,7 @@ func TestDesiredPodsNumInTargetNodeGroups(t *testing.T) {
 		name     string
 		weights  []policyv1alpha1.StaticNodeGroupWeight
 		replicas int
-		want     map[string]int
+		want     map[string]int32
 	}{
 		{
 			name: "normal case",
@@ -30,7 +30,7 @@ func TestDesiredPodsNumInTargetNodeGroups(t *testing.T) {
 				},
 			},
 			replicas: 10,
-			want: map[string]int{
+			want: map[string]int32{
 				"beijing":  5,
 				"hangzhou": 5,
 			},
@@ -53,7 +53,7 @@ func TestDesiredPodsNumInTargetNodeGroups(t *testing.T) {
 				},
 			},
 			replicas: 10,
-			want: map[string]int{
+			want: map[string]int32{
 				"beijing":  2,
 				"hangzhou": 0,
 				"shanghai": 8,
@@ -76,7 +76,7 @@ func TestDesiredPodsNumInTargetNodeGroups(t *testing.T) {
 				},
 			},
 			replicas: 10,
-			want: map[string]int{
+			want: map[string]int32{
 				"beijing":  0,
 				"shanghai": 10,
 			},

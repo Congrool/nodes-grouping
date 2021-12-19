@@ -18,7 +18,7 @@ var _ PrioritizerPlugin = &diffBasedPrioritizePlugin{}
 
 type nodeGroupItem struct {
 	nodeGroupName string
-	podsNum       int
+	podsNum       int32
 	rank          int
 }
 

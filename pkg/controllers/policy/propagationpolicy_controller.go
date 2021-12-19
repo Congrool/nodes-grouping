@@ -113,6 +113,8 @@ func (p *Controller) SetupWithManager(mgr ctrl.Manager) error {
 		// watch changes of NodeGroup and enqueue relavent policies
 		// when nodes in node group has changed.
 		Watches(&source.Kind{Type: &nodegroupv1alpha1.NodeGroup{}}, handler.EnqueueRequestsFromMapFunc(p.newNodeGroupMapFunc)).
+		// TODO:
+		// watch deployment and reconcile when replicas descreases.
 		Complete(p)
 }
 
@@ -155,9 +157,9 @@ func (p *Controller) newNodeGroupMapFunc(obj client.Object) []ctrl.Request {
 	return results
 }
 
-func getPodsNeedToDelete(pods []corev1.Pod, desiredPods map[string]int, nodesInNodeGroups map[string]string) []corev1.Pod {
+func getPodsNeedToDelete(pods []corev1.Pod, desiredPods map[string]int32, nodesInNodeGroups map[string]string) []corev1.Pod {
 	deletePod := []corev1.Pod{}
-	count := make(map[string]int)
+	count := make(map[string]int32)
 
 	for _, pod := range pods {
 		if pod.Spec.NodeName == "" {
