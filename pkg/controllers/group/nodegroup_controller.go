@@ -14,7 +14,7 @@ import (
 	controllerruntime "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	groupv1alpha1 "github.com/Congrool/nodes-grouping/pkg/apis/group/v1alpha1"
+	groupmanagementv1alpha1 "github.com/Congrool/nodes-grouping/pkg/apis/groupmanagement/v1alpha1"
 )
 
 const (
@@ -40,7 +40,7 @@ type Controller struct {
 func (c *Controller) Reconcile(ctx context.Context, req controllerruntime.Request) (controllerruntime.Result, error) {
 	klog.Infof("Reconciling nodeGroup %s", req.NamespacedName.Name)
 
-	nodeGroup := &groupv1alpha1.NodeGroup{}
+	nodeGroup := &groupmanagementv1alpha1.NodeGroup{}
 	if err := c.Client.Get(context.TODO(), req.NamespacedName, nodeGroup); err != nil {
 		// The resource may no longer exist, in which case we stop processing.
 		if apierrors.IsNotFound(err) {
@@ -57,7 +57,7 @@ func (c *Controller) Reconcile(ctx context.Context, req controllerruntime.Reques
 	return c.syncNodeGroup(nodeGroup)
 }
 
-func (c *Controller) syncNodeGroup(nodeGroup *groupv1alpha1.NodeGroup) (controllerruntime.Result, error) {
+func (c *Controller) syncNodeGroup(nodeGroup *groupmanagementv1alpha1.NodeGroup) (controllerruntime.Result, error) {
 	matchLables := nodeGroup.Spec.MatchLabels
 
 	nodeList, err := c.GetNodesByLabelSelector(labels.SelectorFromSet(labels.Set(matchLables)))
@@ -82,11 +82,11 @@ func (c *Controller) syncNodeGroup(nodeGroup *groupv1alpha1.NodeGroup) (controll
 // SetupWithManager creates a controller and register to controller manager.
 func (c *Controller) SetupWithManager(mgr controllerruntime.Manager) error {
 	return utilerrors.NewAggregate([]error{
-		controllerruntime.NewControllerManagedBy(mgr).For(&groupv1alpha1.NodeGroup{}).Complete(c),
+		controllerruntime.NewControllerManagedBy(mgr).For(&groupmanagementv1alpha1.NodeGroup{}).Complete(c),
 	})
 }
 
-func (c *Controller) removeNodeGroup(nodeGroup *groupv1alpha1.NodeGroup) (controllerruntime.Result, error) {
+func (c *Controller) removeNodeGroup(nodeGroup *groupmanagementv1alpha1.NodeGroup) (controllerruntime.Result, error) {
 	if err := c.Client.Delete(context.TODO(), nodeGroup); err != nil && !apierrors.IsNotFound(err) {
 		klog.Errorf("Error while deleting nodegroup %s: %s", nodeGroup)
 		return controllerruntime.Result{Requeue: true}, err

@@ -10,7 +10,7 @@ import (
 	"k8s.io/kubernetes/pkg/scheduler/framework"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	policyv1alpha1 "github.com/Congrool/nodes-grouping/pkg/apis/policy/v1alpha1"
+	groupmanagementv1alpha1 "github.com/Congrool/nodes-grouping/pkg/apis/groupmanagement/v1alpha1"
 	"github.com/Congrool/nodes-grouping/pkg/utils"
 )
 
@@ -38,7 +38,7 @@ const (
 type nodeGroupStateData struct {
 	policyNamespace string
 	policyName      string
-	policy          *policyv1alpha1.PropagationPolicy
+	policy          *groupmanagementv1alpha1.PropagationPolicy
 	deploy          *appv1.Deployment
 }
 

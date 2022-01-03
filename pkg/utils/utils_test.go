@@ -3,19 +3,19 @@ package utils
 import (
 	"testing"
 
-	policyv1alpha1 "github.com/Congrool/nodes-grouping/pkg/apis/policy/v1alpha1"
+	groupmanagementv1alpha1 "github.com/Congrool/nodes-grouping/pkg/apis/groupmanagement/v1alpha1"
 )
 
 func TestDesiredPodsNumInTargetNodeGroups(t *testing.T) {
 	cases := []struct {
 		name     string
-		weights  []policyv1alpha1.StaticNodeGroupWeight
+		weights  []groupmanagementv1alpha1.StaticNodeGroupWeight
 		replicas int
 		want     map[string]int32
 	}{
 		{
 			name: "normal case",
-			weights: []policyv1alpha1.StaticNodeGroupWeight{
+			weights: []groupmanagementv1alpha1.StaticNodeGroupWeight{
 				{
 					NodeGroupNames: []string{
 						"beijing",
@@ -37,7 +37,7 @@ func TestDesiredPodsNumInTargetNodeGroups(t *testing.T) {
 		},
 		{
 			name: "multi nodegroup in one weight entry",
-			weights: []policyv1alpha1.StaticNodeGroupWeight{
+			weights: []groupmanagementv1alpha1.StaticNodeGroupWeight{
 				{
 					NodeGroupNames: []string{
 						"beijing",
@@ -61,7 +61,7 @@ func TestDesiredPodsNumInTargetNodeGroups(t *testing.T) {
 		},
 		{
 			name: "zero weight",
-			weights: []policyv1alpha1.StaticNodeGroupWeight{
+			weights: []groupmanagementv1alpha1.StaticNodeGroupWeight{
 				{
 					NodeGroupNames: []string{
 						"beijing",

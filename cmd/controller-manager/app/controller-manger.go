@@ -14,8 +14,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 
 	"github.com/Congrool/nodes-grouping/cmd/controller-manager/app/options"
-	groupv1alpha1 "github.com/Congrool/nodes-grouping/pkg/apis/group/v1alpha1"
-	policyv1alpha1 "github.com/Congrool/nodes-grouping/pkg/apis/policy/v1alpha1"
+	groupmanagementv1alpha1 "github.com/Congrool/nodes-grouping/pkg/apis/groupmanagement/v1alpha1"
 	groupcontroller "github.com/Congrool/nodes-grouping/pkg/controllers/group"
 	policycontroller "github.com/Congrool/nodes-grouping/pkg/controllers/policy"
 )
@@ -25,8 +24,7 @@ var aggregatedScheme = runtime.NewScheme()
 
 func init() {
 	utilruntime.Must(scheme.AddToScheme(aggregatedScheme))
-	utilruntime.Must(groupv1alpha1.AddToScheme(aggregatedScheme))
-	utilruntime.Must(policyv1alpha1.AddToScheme(aggregatedScheme))
+	utilruntime.Must(groupmanagementv1alpha1.AddToScheme(aggregatedScheme))
 }
 
 // NewControllerManagerCommand creates a *cobra.Command object with default parameters

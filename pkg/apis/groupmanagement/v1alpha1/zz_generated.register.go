@@ -24,7 +24,7 @@ import (
 )
 
 // GroupName specifies the group name used to register the objects.
-const GroupName = "group.kubeedge.io"
+const GroupName = "groupmanagement.kubeedge.io"
 
 // GroupVersion specifies the group and the version used to register the objects.
 var GroupVersion = v1.GroupVersion{Group: GroupName, Version: "v1alpha1"}
@@ -59,6 +59,8 @@ func addKnownTypes(scheme *runtime.Scheme) error {
 	scheme.AddKnownTypes(SchemeGroupVersion,
 		&NodeGroup{},
 		&NodeGroupList{},
+		&PropagationPolicy{},
+		&PropagationPolicyList{},
 	)
 	// AddToGroupVersion allows the serialization of client types like ListOptions.
 	v1.AddToGroupVersion(scheme, SchemeGroupVersion)

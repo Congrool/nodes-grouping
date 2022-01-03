@@ -12,7 +12,7 @@ import (
 	extenderv1 "k8s.io/kube-scheduler/extender/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	policyv1alpha1 "github.com/Congrool/nodes-grouping/pkg/apis/policy/v1alpha1"
+	groupmanagementv1alpha1 "github.com/Congrool/nodes-grouping/pkg/apis/groupmanagement/v1alpha1"
 	extenderutil "github.com/Congrool/nodes-grouping/pkg/schedulerextender/extender/utils"
 	"github.com/Congrool/nodes-grouping/pkg/utils"
 )
@@ -23,7 +23,7 @@ type Prioritizer interface {
 
 type PrioritizerPlugin interface {
 	Name() string
-	PrioritizeNodes(context.Context, client.Client, *corev1.Pod, *extenderv1.ExtenderArgs, *policyv1alpha1.PropagationPolicy) (extenderv1.HostPriorityList, error)
+	PrioritizeNodes(context.Context, client.Client, *corev1.Pod, *extenderv1.ExtenderArgs, *groupmanagementv1alpha1.PropagationPolicy) (extenderv1.HostPriorityList, error)
 }
 
 type prioritizer struct {

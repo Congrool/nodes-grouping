@@ -19,6 +19,8 @@ testbin/*
 
 !vendor/**/zz_generated.*
 
+vendor
+
 # editor and IDE paraphernalia
 .idea
 .vscode

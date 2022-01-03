@@ -41,11 +41,8 @@ type NodeGroupStatus struct {
 	ContainedNodes []string `json:"containedNodes,omitempty"`
 }
 
-//+kubebuilder:resource:scope="Cluster"
-//+kubebuilder:object:root=true
-//+kubebuilder:subresource:status
-//+kubebuilder:storageversion
-//+kubebuilder:resource:shortName=ng
+// +genclient
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 // NodeGroup is the Schema for the nodegroups API
 type NodeGroup struct {
@@ -61,7 +58,7 @@ type NodeGroup struct {
 	Status NodeGroupStatus `json:"status,omitempty"`
 }
 
-//+kubebuilder:object:root=true
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 // PropagationPolicyList contains a list of PropagationPolicy
 type NodeGroupList struct {

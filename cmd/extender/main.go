@@ -3,8 +3,7 @@ package main
 import (
 	"context"
 
-	nodegroupv1alpha1 "github.com/Congrool/nodes-grouping/pkg/apis/group/v1alpha1"
-	policyv1alpha1 "github.com/Congrool/nodes-grouping/pkg/apis/policy/v1alpha1"
+	groupmanagementv1alpha1 "github.com/Congrool/nodes-grouping/pkg/apis/groupmanagement/v1alpha1"
 	"github.com/Congrool/nodes-grouping/pkg/schedulerextender"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
@@ -21,8 +20,8 @@ var (
 
 func init() {
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
-	utilruntime.Must(policyv1alpha1.AddToScheme(scheme))
-	utilruntime.Must(nodegroupv1alpha1.AddToScheme(scheme))
+	utilruntime.Must(groupmanagementv1alpha1.AddToScheme(scheme))
+	utilruntime.Must(groupmanagementv1alpha1.AddToScheme(scheme))
 	klog.InitFlags(nil)
 }
 

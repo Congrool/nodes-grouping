@@ -6,8 +6,7 @@ import (
 	"net/http"
 	"strings"
 
-	groupv1alpha1 "github.com/Congrool/nodes-grouping/pkg/apis/group/v1alpha1"
-	policyv1alpha1 "github.com/Congrool/nodes-grouping/pkg/apis/policy/v1alpha1"
+	groupmanagementv1alpha1 "github.com/Congrool/nodes-grouping/pkg/apis/groupmanagement/v1alpha1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -29,7 +28,7 @@ func WithCheck(handler http.Handler) http.Handler {
 	})
 }
 
-func GetNodesInGroups(ctx context.Context, client runtimeClient.Client, groups []groupv1alpha1.NodeGroup) (map[string]string, error) {
+func GetNodesInGroups(ctx context.Context, client runtimeClient.Client, groups []groupmanagementv1alpha1.NodeGroup) (map[string]string, error) {
 	nodesInGroups := make(map[string]string)
 	for _, group := range groups {
 		labelSelector := metav1.SetAsLabelSelector(group.Spec.MatchLabels)
@@ -51,10 +50,10 @@ func GetNodesInGroups(ctx context.Context, client runtimeClient.Client, groups [
 	return nodesInGroups, nil
 }
 
-func GetNodeGroupsWithName(ctx context.Context, client runtimeClient.Client, nodeGroupName []string) ([]groupv1alpha1.NodeGroup, error) {
-	nodegroup := []groupv1alpha1.NodeGroup{}
+func GetNodeGroupsWithName(ctx context.Context, client runtimeClient.Client, nodeGroupName []string) ([]groupmanagementv1alpha1.NodeGroup, error) {
+	nodegroup := []groupmanagementv1alpha1.NodeGroup{}
 	for _, name := range nodeGroupName {
-		group := &groupv1alpha1.NodeGroup{}
+		group := &groupmanagementv1alpha1.NodeGroup{}
 		// TODO:
 		// do not use "default" as nodegroup namespace"
 		if err := client.Get(ctx, runtimeClient.ObjectKey{Name: name, Namespace: "default"}, group); err != nil {
@@ -66,7 +65,7 @@ func GetNodeGroupsWithName(ctx context.Context, client runtimeClient.Client, nod
 	return nodegroup, nil
 }
 
-func GetManifestsDeploys(ctx context.Context, client runtimeClient.Client, policy *policyv1alpha1.PropagationPolicy) ([]*appsv1.Deployment, error) {
+func GetManifestsDeploys(ctx context.Context, client runtimeClient.Client, policy *groupmanagementv1alpha1.PropagationPolicy) ([]*appsv1.Deployment, error) {
 	deploys := []*appsv1.Deployment{}
 	errs := []error{}
 	for _, selector := range policy.Spec.ResourceSelectors {
@@ -93,7 +92,7 @@ func ParseNamespaceName(namespaceName string) (string, string, error) {
 	return "", "", fmt.Errorf("failed to parse NamespaceName of %s", namespaceName)
 }
 
-func DesiredPodsNumInTargetNodeGroups(weights []policyv1alpha1.StaticNodeGroupWeight, replicaNum int32) map[string]int32 {
+func DesiredPodsNumInTargetNodeGroups(weights []groupmanagementv1alpha1.StaticNodeGroupWeight, replicaNum int32) map[string]int32 {
 	var sum int64
 	results := make(map[string]int32)
 
@@ -154,7 +153,7 @@ func GetPodListFromDeploy(ctx context.Context, client runtimeClient.Client, depl
 	return podList, nil
 }
 
-func CurrentPodsNumInTargetNodeGroups(ctx context.Context, client runtimeClient.Client, deploy *appsv1.Deployment, policy *policyv1alpha1.PropagationPolicy) (map[string]int32, map[string]string, error) {
+func CurrentPodsNumInTargetNodeGroups(ctx context.Context, client runtimeClient.Client, deploy *appsv1.Deployment, policy *groupmanagementv1alpha1.PropagationPolicy) (map[string]int32, map[string]string, error) {
 	targetNodeGroupNames := []string{}
 	for _, weight := range policy.Spec.Placement.StaticWeightList {
 		targetNodeGroupNames = append(targetNodeGroupNames, weight.NodeGroupNames...)
@@ -194,7 +193,7 @@ func CurrentPodsNumInTargetNodeGroups(ctx context.Context, client runtimeClient.
 	return currentPodsInTargetNodeGroups, nodesInGroups, nil
 }
 
-func GetRelativeDeployment(ctx context.Context, client runtimeClient.Client, pod *corev1.Pod, policy *policyv1alpha1.PropagationPolicy) (*appsv1.Deployment, error) {
+func GetRelativeDeployment(ctx context.Context, client runtimeClient.Client, pod *corev1.Pod, policy *groupmanagementv1alpha1.PropagationPolicy) (*appsv1.Deployment, error) {
 	deploys, err := GetManifestsDeploys(ctx, client, policy)
 	if err != nil {
 		klog.Warningf("failed to get all deploys manifested by policy %s/%s, continue with fetched deploys, %v", policy.Namespace, policy.Name, err)
@@ -216,10 +215,10 @@ func GetRelativeDeployment(ctx context.Context, client runtimeClient.Client, pod
 	return relativeDeploy, err
 }
 
-func GetRelativeDeployAndPolicy(ctx context.Context, client runtimeClient.Client, pod *corev1.Pod) (*appsv1.Deployment, *policyv1alpha1.PropagationPolicy, error) {
+func GetRelativeDeployAndPolicy(ctx context.Context, client runtimeClient.Client, pod *corev1.Pod) (*appsv1.Deployment, *groupmanagementv1alpha1.PropagationPolicy, error) {
 	// TODO:
 	// Do not fetch directly from APIServer
-	policyList := &policyv1alpha1.PropagationPolicyList{}
+	policyList := &groupmanagementv1alpha1.PropagationPolicyList{}
 	if err := client.List(ctx, policyList, &runtimeClient.ListOptions{Namespace: pod.Namespace}); err != nil {
 		return nil, nil, fmt.Errorf("failed to list policy, %v", err)
 	}

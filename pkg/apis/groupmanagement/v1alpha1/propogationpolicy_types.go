@@ -40,10 +40,8 @@ type PropagationPolicyStatus struct {
 	// Important: Run "make" to regenerate code after modifying this file
 }
 
-//+kubebuilder:object:root=true
-//+kubebuilder:subresource:status
-//+kubebuilder:storageversion
-//+kubebuilder:resource:shortName=pp
+// +genclient
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 // PropagationPolicy represents the policy that propagates a group of resources to one or more nodegroups.
 type PropagationPolicy struct {
@@ -55,7 +53,7 @@ type PropagationPolicy struct {
 	Spec PropagationPolicySpec `json:"spec"`
 }
 
-//+kubebuilder:object:root=true
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 // PropagationPolicyList contains a list of PropagationPolicy
 type PropagationPolicyList struct {

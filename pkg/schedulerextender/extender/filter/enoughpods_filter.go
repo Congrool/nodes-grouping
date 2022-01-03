@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	policyv1alpha1 "github.com/Congrool/nodes-grouping/pkg/apis/policy/v1alpha1"
+	groupmanagementv1alpha1 "github.com/Congrool/nodes-grouping/pkg/apis/groupmanagement/v1alpha1"
 	"github.com/Congrool/nodes-grouping/pkg/schedulerextender/constants"
 	"github.com/Congrool/nodes-grouping/pkg/utils"
 	corev1 "k8s.io/api/core/v1"
@@ -26,7 +26,7 @@ func (f *enoughPodsFilter) FilterNodes(
 	client client.Client,
 	pod *corev1.Pod,
 	nodes []corev1.Node,
-	policy *policyv1alpha1.PropagationPolicy) ([]corev1.Node, error) {
+	policy *groupmanagementv1alpha1.PropagationPolicy) ([]corev1.Node, error) {
 	relativeDeploy, err := utils.GetRelativeDeployment(ctx, client, pod, policy)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get relative deployment of pod %s/%s when filtering nodes for it, %v",

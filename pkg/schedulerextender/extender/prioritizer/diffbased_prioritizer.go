@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"sort"
 
-	policyv1alpha1 "github.com/Congrool/nodes-grouping/pkg/apis/policy/v1alpha1"
+	groupmanagementv1alpha1 "github.com/Congrool/nodes-grouping/pkg/apis/groupmanagement/v1alpha1"
 	"github.com/Congrool/nodes-grouping/pkg/schedulerextender/constants"
 	"github.com/Congrool/nodes-grouping/pkg/utils"
 	corev1 "k8s.io/api/core/v1"
@@ -36,7 +36,7 @@ func (p *diffBasedPrioritizePlugin) Name() string {
 
 // TODO:
 // figure out how to score nodes when the number of the candicates is too small.
-func (p *diffBasedPrioritizePlugin) PrioritizeNodes(ctx context.Context, client client.Client, pod *corev1.Pod, args *extenderv1.ExtenderArgs, policy *policyv1alpha1.PropagationPolicy) (extenderv1.HostPriorityList, error) {
+func (p *diffBasedPrioritizePlugin) PrioritizeNodes(ctx context.Context, client client.Client, pod *corev1.Pod, args *extenderv1.ExtenderArgs, policy *groupmanagementv1alpha1.PropagationPolicy) (extenderv1.HostPriorityList, error) {
 	relativeDeploy, err := utils.GetRelativeDeployment(ctx, client, pod, policy)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get relative deployment for pod %s/%s when prioritizing nodes for it, %v",

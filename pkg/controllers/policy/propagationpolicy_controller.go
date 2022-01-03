@@ -29,8 +29,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
-	nodegroupv1alpha1 "github.com/Congrool/nodes-grouping/pkg/apis/group/v1alpha1"
-	policyv1alpha1 "github.com/Congrool/nodes-grouping/pkg/apis/policy/v1alpha1"
+	groupmanagementv1alpha1 "github.com/Congrool/nodes-grouping/pkg/apis/groupmanagement/v1alpha1"
 	"github.com/Congrool/nodes-grouping/pkg/utils"
 )
 
@@ -45,7 +44,7 @@ type Controller struct {
 // For more details, check Reconcile and its Result here:
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.9.2/pkg/reconcile
 func (p *Controller) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	policy := &policyv1alpha1.PropagationPolicy{}
+	policy := &groupmanagementv1alpha1.PropagationPolicy{}
 	if err := p.Client.Get(ctx, req.NamespacedName, policy); err != nil {
 		if apierrors.IsNotFound(err) || policy.DeletionTimestamp != nil {
 			// TODO: handle delete event
@@ -57,7 +56,7 @@ func (p *Controller) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	}
 	klog.Infof("reconciling policy %s/%s", policy.Namespace, policy.Name)
 
-	nodegroupList := &nodegroupv1alpha1.NodeGroupList{}
+	nodegroupList := &groupmanagementv1alpha1.NodeGroupList{}
 	if err := p.Client.List(ctx, nodegroupList, &client.ListOptions{}); err != nil {
 		klog.Errorf("failed to list nodegroup, %v", err)
 		return ctrl.Result{}, nil
@@ -109,18 +108,18 @@ func (p *Controller) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 // SetupWithManager sets up the controller with the Manager.
 func (p *Controller) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&policyv1alpha1.PropagationPolicy{}).
+		For(&groupmanagementv1alpha1.PropagationPolicy{}).
 		// watch changes of NodeGroup and enqueue relavent policies
 		// when nodes in node group has changed.
-		Watches(&source.Kind{Type: &nodegroupv1alpha1.NodeGroup{}}, handler.EnqueueRequestsFromMapFunc(p.newNodeGroupMapFunc)).
+		Watches(&source.Kind{Type: &groupmanagementv1alpha1.NodeGroup{}}, handler.EnqueueRequestsFromMapFunc(p.newNodeGroupMapFunc)).
 		// TODO:
 		// watch deployment and reconcile when replicas descreases.
 		Complete(p)
 }
 
 func (p *Controller) newNodeGroupMapFunc(obj client.Object) []ctrl.Request {
-	groupobj := obj.(*nodegroupv1alpha1.NodeGroup)
-	policyList := &policyv1alpha1.PropagationPolicyList{}
+	groupobj := obj.(*groupmanagementv1alpha1.NodeGroup)
+	policyList := &groupmanagementv1alpha1.PropagationPolicyList{}
 	if err := p.Client.List(context.TODO(), policyList); err != nil {
 		klog.Errorf("failed to list propagation policy, %v", err)
 		return nil
@@ -128,12 +127,12 @@ func (p *Controller) newNodeGroupMapFunc(obj client.Object) []ctrl.Request {
 
 	results := []ctrl.Request{}
 
-	forEachPolicyDo := func(fn func(*policyv1alpha1.PropagationPolicy)) {
+	forEachPolicyDo := func(fn func(*groupmanagementv1alpha1.PropagationPolicy)) {
 		for i := range policyList.Items {
 			fn(&policyList.Items[i])
 		}
 	}
-	ifNodeGroupInPolicy := func(policy *policyv1alpha1.PropagationPolicy) bool {
+	ifNodeGroupInPolicy := func(policy *groupmanagementv1alpha1.PropagationPolicy) bool {
 		for _, weight := range policy.Spec.Placement.StaticWeightList {
 			for _, group := range weight.NodeGroupNames {
 				if group == groupobj.Name {
@@ -144,7 +143,7 @@ func (p *Controller) newNodeGroupMapFunc(obj client.Object) []ctrl.Request {
 		return false
 	}
 
-	forEachPolicyDo(func(policy *policyv1alpha1.PropagationPolicy) {
+	forEachPolicyDo(func(policy *groupmanagementv1alpha1.PropagationPolicy) {
 		if ifNodeGroupInPolicy(policy) {
 			results = append(results, ctrl.Request{
 				NamespacedName: types.NamespacedName{

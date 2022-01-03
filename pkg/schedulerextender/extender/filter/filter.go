@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"net/http"
 
-	policyv1alpha1 "github.com/Congrool/nodes-grouping/pkg/apis/policy/v1alpha1"
+	groupmanagementv1alpha1 "github.com/Congrool/nodes-grouping/pkg/apis/groupmanagement/v1alpha1"
 	extenderutil "github.com/Congrool/nodes-grouping/pkg/schedulerextender/extender/utils"
 	"github.com/Congrool/nodes-grouping/pkg/utils"
 
@@ -23,7 +23,7 @@ type Filter interface {
 
 type FilterPlugin interface {
 	Name() string
-	FilterNodes(context.Context, client.Client, *corev1.Pod, []corev1.Node, *policyv1alpha1.PropagationPolicy) ([]corev1.Node, error)
+	FilterNodes(context.Context, client.Client, *corev1.Pod, []corev1.Node, *groupmanagementv1alpha1.PropagationPolicy) ([]corev1.Node, error)
 }
 
 type filter struct {
