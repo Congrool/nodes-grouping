@@ -21,27 +21,11 @@ echo "Generating with register-gen"
   --output-package=./pkg/apis/groupmanagement/v1alpha1 \
   --output-file-base=zz_generated.register
 
-# register-gen \
-#   --go-header-file hack/boilerplate.go.txt \
-#   --input-dirs=./pkg/apis/policy/v1alpha1 \
-#   --output-package=./pkg/apis/policy/v1alpha1 \
-#   --output-file-base=zz_generated.register
-
-# bash "${REPO_ROOT}"/bin/client-gen \
-#   --go-header-file "${CODEGEN_PKG}"/hack/boilerplate.go.txt \
-#   --clientset-name versioned \
-#   --input-base ./pkg/apis
-#   --input group:v1alpha1
-#   --input-dirs ./pkg/apis/group/v1alpha1 \
-#   --output-package ./pkg/generated/clientset
-  
-# bash "${CODEGEN_PKG}"/generate-groups.sh \
-#   all \
-#   github.com/Congrool/nodes-grouping/pkg/generated \
-#   github.com/Congrool/nodes-grouping/pkg/apis \
-#   "group:v1alpha1" \
-#   --go-header-file "${REPO_ROOT}"/hack/boilerplate.go.txt \
-#   --output-base "${REPO_ROOT}"/
+"${REPO_ROOT}"/bin/register-gen \
+  --go-header-file hack/boilerplate.go.txt \
+  --input-dirs=./pkg/apis/config/v1alpha1 \
+  --output-package=./pkg/apis/config/v1alpha1 \
+  --output-file-base=zz_generated.register
 
 bash "${CODEGEN_PKG}"/generate-groups.sh \
   all \
@@ -52,7 +36,7 @@ bash "${CODEGEN_PKG}"/generate-groups.sh \
   --output-base "${REPO_ROOT}"/ 
 
 bash "${CODEGEN_PKG}"/generate-groups.sh \
-  "deepcopy" \
+  deepcopy,register \
   github.com/Congrool/nodes-grouping/pkg/generated \
   github.com/Congrool/nodes-grouping/pkg/apis \
   "config:v1alpha1" \

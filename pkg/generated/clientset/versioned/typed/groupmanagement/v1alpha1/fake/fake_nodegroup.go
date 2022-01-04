@@ -116,7 +116,7 @@ func (c *FakeNodeGroups) UpdateStatus(ctx context.Context, nodeGroup *v1alpha1.N
 // Delete takes name of the nodeGroup and deletes it. Returns an error if one occurs.
 func (c *FakeNodeGroups) Delete(ctx context.Context, name string, opts v1.DeleteOptions) error {
 	_, err := c.Fake.
-		Invokes(testing.NewDeleteActionWithOptions(nodegroupsResource, c.ns, name, opts), &v1alpha1.NodeGroup{})
+		Invokes(testing.NewDeleteAction(nodegroupsResource, c.ns, name), &v1alpha1.NodeGroup{})
 
 	return err
 }

@@ -104,7 +104,7 @@ func (c *FakePropagationPolicies) Update(ctx context.Context, propagationPolicy 
 // Delete takes name of the propagationPolicy and deletes it. Returns an error if one occurs.
 func (c *FakePropagationPolicies) Delete(ctx context.Context, name string, opts v1.DeleteOptions) error {
 	_, err := c.Fake.
-		Invokes(testing.NewDeleteActionWithOptions(propagationpoliciesResource, c.ns, name, opts), &v1alpha1.PropagationPolicy{})
+		Invokes(testing.NewDeleteAction(propagationpoliciesResource, c.ns, name), &v1alpha1.PropagationPolicy{})
 
 	return err
 }
