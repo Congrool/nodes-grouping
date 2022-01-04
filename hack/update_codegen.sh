@@ -51,6 +51,15 @@ bash "${CODEGEN_PKG}"/generate-groups.sh \
   --go-header-file "${REPO_ROOT}"/hack/boilerplate.go.txt \
   --output-base "${REPO_ROOT}"/ 
 
+bash "${CODEGEN_PKG}"/generate-groups.sh \
+  "deepcopy" \
+  github.com/Congrool/nodes-grouping/pkg/generated \
+  github.com/Congrool/nodes-grouping/pkg/apis \
+  "config:v1alpha1" \
+  --go-header-file "${REPO_ROOT}"/hack/boilerplate.go.txt \
+  --output-base "${REPO_ROOT}"/
+
+mv github.com/Congrool/nodes-grouping/pkg/apis/config/v1alpha1/* pkg/apis/config/v1alpha1
 mv github.com/Congrool/nodes-grouping/pkg/apis/groupmanagement/v1alpha1/* pkg/apis/groupmanagement/v1alpha1
 rm -rf pkg/generated
 mv github.com/Congrool/nodes-grouping/pkg/generated pkg

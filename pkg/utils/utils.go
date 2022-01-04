@@ -6,15 +6,14 @@ import (
 	"net/http"
 	"strings"
 
-	groupmanagementv1alpha1 "github.com/Congrool/nodes-grouping/pkg/apis/groupmanagement/v1alpha1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/types"
 	apierr "k8s.io/apimachinery/pkg/util/errors"
-
 	"k8s.io/klog/v2"
+
+	groupmanagementv1alpha1 "github.com/Congrool/nodes-grouping/pkg/apis/groupmanagement/v1alpha1"
 	runtimeClient "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -151,111 +150,4 @@ func GetPodListFromDeploy(ctx context.Context, client runtimeClient.Client, depl
 		return nil, err
 	}
 	return podList, nil
-}
-
-func CurrentPodsNumInTargetNodeGroups(ctx context.Context, client runtimeClient.Client, deploy *appsv1.Deployment, policy *groupmanagementv1alpha1.PropagationPolicy) (map[string]int32, map[string]string, error) {
-	targetNodeGroupNames := []string{}
-	for _, weight := range policy.Spec.Placement.StaticWeightList {
-		targetNodeGroupNames = append(targetNodeGroupNames, weight.NodeGroupNames...)
-	}
-
-	groups, err := GetNodeGroupsWithName(ctx, client, targetNodeGroupNames)
-	if err != nil {
-		return nil, nil, fmt.Errorf("failed to get nodegroups according to their names for deploy %s/%s, policy %s/%s , %v",
-			deploy.Namespace, deploy.Name, policy.Namespace, policy.Name, err)
-	}
-
-	nodesInGroups, err := GetNodesInGroups(ctx, client, groups)
-	if err != nil {
-		return nil, nil, fmt.Errorf("failed to get nodes in nodegroups for deploy %s/%s, policy %s/%s, %v",
-			deploy.Namespace, deploy.Name, policy.Namespace, policy.Name, err)
-	}
-
-	podList, err := GetPodListFromDeploy(ctx, client, deploy)
-	if err != nil {
-		return nil, nil, fmt.Errorf("failed to get podlist for deploy %s/%s", deploy.Namespace, deploy.Name)
-	}
-
-	currentPodsInTargetNodeGroups := map[string]int32{}
-	for _, pod := range podList.Items {
-		if pod.Spec.NodeName == "" {
-			// ignore no scheduled pod
-			continue
-		}
-		group, ok := nodesInGroups[pod.Spec.NodeName]
-		if !ok {
-			// It should be solved by PropagationPolicy controller instead of the scheduler extender.
-			klog.Warningf("find pod running on the node %s which is not in target nodegroups, ignore it")
-			continue
-		}
-		currentPodsInTargetNodeGroups[group]++
-	}
-	return currentPodsInTargetNodeGroups, nodesInGroups, nil
-}
-
-func GetRelativeDeployment(ctx context.Context, client runtimeClient.Client, pod *corev1.Pod, policy *groupmanagementv1alpha1.PropagationPolicy) (*appsv1.Deployment, error) {
-	deploys, err := GetManifestsDeploys(ctx, client, policy)
-	if err != nil {
-		klog.Warningf("failed to get all deploys manifested by policy %s/%s, continue with fetched deploys, %v", policy.Namespace, policy.Name, err)
-	}
-
-	// get deployment relative to the pod
-	var relativeDeploy *appsv1.Deployment
-	for _, deploy := range deploys {
-		selector, err := metav1.LabelSelectorAsSelector(deploy.Spec.Selector)
-		if err != nil {
-			return nil, fmt.Errorf("failed to convert LabelSelector to Selector, %v", err)
-		}
-		if selector.Matches(labels.Set(pod.Labels)) {
-			relativeDeploy = deploy
-			break
-		}
-	}
-
-	return relativeDeploy, err
-}
-
-func GetRelativeDeployAndPolicy(ctx context.Context, client runtimeClient.Client, pod *corev1.Pod) (*appsv1.Deployment, *groupmanagementv1alpha1.PropagationPolicy, error) {
-	// TODO:
-	// Do not fetch directly from APIServer
-	policyList := &groupmanagementv1alpha1.PropagationPolicyList{}
-	if err := client.List(ctx, policyList, &runtimeClient.ListOptions{Namespace: pod.Namespace}); err != nil {
-		return nil, nil, fmt.Errorf("failed to list policy, %v", err)
-	}
-
-	matchLabelsOnPod := func(deploySelector metav1.LabelSelector, podLabels map[string]string) bool {
-		selector, err := metav1.LabelSelectorAsSelector(&deploySelector)
-		if err != nil {
-			klog.Errorf("failed to get selector from labelselector, err: %s")
-			return false
-		}
-		if selector.Matches(labels.Set(podLabels)) {
-			return true
-		}
-		return false
-	}
-
-	for _, policy := range policyList.Items {
-		var deploys []*appsv1.Deployment
-		for _, selector := range policy.Spec.ResourceSelectors {
-			if selector.Namespace != "" && selector.Name != "" {
-				deploy := &appsv1.Deployment{}
-				if err := client.Get(ctx, runtimeClient.ObjectKey{Namespace: selector.Namespace, Name: selector.Name}, deploy); err != nil {
-					return nil, nil, fmt.Errorf("failed to get deploy with namespaceName %s/%s, %v", selector.Namespace, selector.Name, err)
-				}
-				deploys = append(deploys, deploy)
-			} else {
-				return nil, nil, fmt.Errorf("empty namespace name of resource selector in policy %s/%s", policy.Namespace, policy.Name)
-			}
-		}
-
-		for _, deploy := range deploys {
-			if matchLabelsOnPod(*deploy.Spec.Selector, pod.Labels) {
-				return deploy, &policy, nil
-			}
-		}
-	}
-
-	// find nothing
-	return nil, nil, nil
 }

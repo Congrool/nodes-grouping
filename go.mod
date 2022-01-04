@@ -4,7 +4,6 @@ go 1.16
 
 require (
 	github.com/emicklei/go-restful v2.9.6+incompatible // indirect
-	github.com/gorilla/mux v1.8.0
 	github.com/spf13/cobra v1.2.1
 	github.com/spf13/pflag v1.0.5
 	k8s.io/api v0.23.0
@@ -14,7 +13,7 @@ require (
 	k8s.io/code-generator v0.23.0
 	k8s.io/component-base v0.23.0
 	k8s.io/klog/v2 v2.30.0
-	k8s.io/kube-scheduler v0.21.4
+	k8s.io/kube-scheduler v0.21.4 // indirect
 	k8s.io/kubernetes v1.21.4
 	sigs.k8s.io/controller-runtime v0.11.0
 )
