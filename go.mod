@@ -3,19 +3,18 @@ module github.com/Congrool/nodes-grouping
 go 1.16
 
 require (
-	github.com/emicklei/go-restful v2.9.6+incompatible // indirect
-	github.com/spf13/cobra v1.2.1
+	github.com/spf13/cobra v1.1.3
 	github.com/spf13/pflag v1.0.5
 	k8s.io/api v0.23.0
 	k8s.io/apimachinery v0.23.0
-	k8s.io/apiserver v0.23.0
+	k8s.io/apiserver v0.22.3
 	k8s.io/client-go v0.23.0
-	k8s.io/code-generator v0.23.0
+	k8s.io/code-generator v0.22.3
 	k8s.io/component-base v0.23.0
-	k8s.io/klog/v2 v2.30.0
+	k8s.io/klog/v2 v2.9.0
 	k8s.io/kube-scheduler v0.22.3 // indirect
 	k8s.io/kubernetes v1.22.3
-	sigs.k8s.io/controller-runtime v0.11.0
+	sigs.k8s.io/controller-runtime v0.9.7
 )
 
 replace (
@@ -33,7 +32,6 @@ replace (
 	k8s.io/controller-manager => k8s.io/controller-manager v0.22.3
 	k8s.io/cri-api => k8s.io/cri-api v0.22.3
 	k8s.io/csi-translation-lib => k8s.io/csi-translation-lib v0.22.3
-	k8s.io/klog/v2 => k8s.io/klog/v2 v2.9.0
 	k8s.io/kube-aggregator => k8s.io/kube-aggregator v0.22.3
 	k8s.io/kube-controller-manager => k8s.io/kube-controller-manager v0.22.3
 	k8s.io/kube-proxy => k8s.io/kube-proxy v0.22.3
