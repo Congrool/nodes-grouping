@@ -1,0 +1,22 @@
+apiVersion: kubescheduler.config.k8s.io/v1beta2
+kind: KubeSchedulerConfiguration
+leaderElection:
+  leaderElect: false
+clientConnection:
+  kubeconfig: /home/ys3/.kube/config
+profiles:
+- schedulerName: default-scheduler
+  plugins:
+    preFilter:
+      enabled:
+      - name: NodeGroupScheduling
+    filter:
+      enabled:
+      - name: NodeGroupScheduling
+    score:
+      enabled:
+      - name: NodeGroupScheduling
+  pluginConfig:
+  - name: NodeGroupScheduling
+    args:
+      kubeConfigPath: /home/ys3/.kube/config

@@ -1,7 +1,15 @@
-apiVersion: group.kubeedge.io/v1alpha1
+apiVersion: groupmanagement.kubeedge.io/v1alpha1
 kind: NodeGroup
 metadata:
   name: hangzhou
 spec:
   matchLabels:
-    kubernetes.io/hostname: node1
+    kubernetes.io/hostname: worker
+---
+apiVersion: groupmanagement.kubeedge.io/v1alpha1
+kind: NodeGroup
+metadata:
+  name: beijing 
+spec:
+  matchLabels:
+    kubernetes.io/hostname: worker2

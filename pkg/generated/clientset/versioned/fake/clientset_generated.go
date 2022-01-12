@@ -73,7 +73,10 @@ func (c *Clientset) Tracker() testing.ObjectTracker {
 	return c.tracker
 }
 
-var _ clientset.Interface = &Clientset{}
+var (
+	_ clientset.Interface = &Clientset{}
+	_ testing.FakeClient  = &Clientset{}
+)
 
 // GroupmanagementV1alpha1 retrieves the GroupmanagementV1alpha1Client
 func (c *Clientset) GroupmanagementV1alpha1() groupmanagementv1alpha1.GroupmanagementV1alpha1Interface {

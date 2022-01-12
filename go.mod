@@ -12,7 +12,7 @@ require (
 	k8s.io/code-generator v0.22.3
 	k8s.io/component-base v0.23.0
 	k8s.io/klog/v2 v2.9.0
-	k8s.io/kube-scheduler v0.22.3 // indirect
+	k8s.io/kube-scheduler v0.22.3
 	k8s.io/kubernetes v1.22.3
 	sigs.k8s.io/controller-runtime v0.9.7
 )

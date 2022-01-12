@@ -14,8 +14,17 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// +k8s:deepcopy-gen=package
-// +groupName=config.kubeedge.io
+package v1beta2
 
-// Package v1alpha1 contains API Schema definitions for the group v1alpha1 API group
-package v1alpha1
+import (
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+)
+
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
+// NodeGroupSchedulingArgs holds arguments used to configure NodeGroupScheduling plugin.
+type NodeGroupSchedulingArgs struct {
+	metav1.TypeMeta `json:",inline"`
+
+	KubeConfigPath *string `json:"kubeConfigPath,omitempty"`
+}

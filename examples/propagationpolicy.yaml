@@ -1,4 +1,4 @@
-apiVersion: policy.kubeedge.io/v1alpha1
+apiVersion: groupmanagement.kubeedge.io/v1alpha1
 kind: PropagationPolicy
 metadata:
   name: mypropagation
@@ -6,10 +6,13 @@ spec:
   resourceSelectors:
   - apiVersion: apps/v1
     kind: Deployment
-    name: aghost-deploy
+    name: nginx-deploy
     namespace: default
   placement:
     staticWeightList:
     - nodeGroupNames:
       - beijing
+      weight: 1
+    - nodeGroupNames:
+      - hangzhou
       weight: 1

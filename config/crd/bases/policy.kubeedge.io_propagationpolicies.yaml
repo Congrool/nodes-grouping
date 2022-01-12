@@ -6,9 +6,9 @@ metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.6.1
   creationTimestamp: null
-  name: propagationpolicies.policy.kubeedge.io
+  name: propagationpolicies.groupmanagement.kubeedge.io
 spec:
-  group: policy.kubeedge.io
+  group: groupmanagement.kubeedge.io
   names:
     kind: PropagationPolicy
     listKind: PropagationPolicyList

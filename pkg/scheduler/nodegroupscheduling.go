@@ -13,7 +13,7 @@ import (
 	"k8s.io/klog/v2"
 	"k8s.io/kubernetes/pkg/scheduler/framework"
 
-	config "github.com/Congrool/nodes-grouping/pkg/apis/config/v1alpha1"
+	config "github.com/Congrool/nodes-grouping/pkg/apis/config"
 	groupmanagementv1alpha1 "github.com/Congrool/nodes-grouping/pkg/apis/groupmanagement/v1alpha1"
 	groupmanagementclientset "github.com/Congrool/nodes-grouping/pkg/generated/clientset/versioned"
 	groupinformerfactory "github.com/Congrool/nodes-grouping/pkg/generated/informers/externalversions"
@@ -60,10 +60,10 @@ var _ framework.ScorePlugin = &NodeGroupScheduling{}
 func New(obj runtime.Object, handle framework.Handle) (framework.Plugin, error) {
 	args, ok := obj.(*config.NodeGroupSchedulingArgs)
 	if !ok {
-		return nil, fmt.Errorf("NodeGroupScheduling wants args to be of type NodeGroupSchedulingArgs, got %T", obj)
+		return nil, fmt.Errorf("NodeGroupScheduling wants args to be of type NodeGroupSchedulingArgs, got %T, %v", obj, obj)
 	}
 
-	conf, err := clientcmd.BuildConfigFromFlags("", args.KubeConfigPath)
+	conf, err := clientcmd.BuildConfigFromFlags("", *args.KubeConfigPath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to init rest.Config: %v", err)
 	}
@@ -131,7 +131,7 @@ func (ngs *NodeGroupScheduling) Filter(ctx context.Context, state *framework.Cyc
 	} else if d, ok := data.(*nodeGroupStateData); !ok {
 		// TODO:
 		// Consider if we should fall back to normal scheduling.
-		return framework.NewStatus(framework.Success, fmt.Sprintf("convert StateDate to nodeGroupStateData failed, fall back to normal schedule"))
+		return framework.NewStatus(framework.Success, "convert StateDate to nodeGroupStateData failed, fall back to normal schedule")
 	} else {
 		policyData = d
 	}
@@ -163,7 +163,7 @@ func (ngs *NodeGroupScheduling) Score(ctx context.Context, state *framework.Cycl
 		// fall back to normal pod scheduling
 		return 0, framework.NewStatus(framework.Success, "")
 	} else if d, ok := data.(*nodeGroupStateData); !ok {
-		return 0, framework.NewStatus(framework.Success, fmt.Sprintf("convert StateDate to nodeGroupStateData failed, fall back to normal schedule"))
+		return 0, framework.NewStatus(framework.Success, "convert StateDate to nodeGroupStateData failed, fall back to normal schedule")
 	} else {
 		policyData = d
 	}

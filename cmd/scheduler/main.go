@@ -8,7 +8,7 @@ import (
 	"k8s.io/component-base/logs"
 	"k8s.io/kubernetes/cmd/kube-scheduler/app"
 
-	_ "github.com/Congrool/nodes-grouping/pkg/apis/config/v1alpha1"
+	_ "github.com/Congrool/nodes-grouping/pkg/apis/config/scheme"
 	"github.com/Congrool/nodes-grouping/pkg/scheduler"
 )
 
