@@ -176,7 +176,7 @@ func (gm *groupManager) CurrentPodsNumInTargetNodeGroups(policy *groupmanagement
 		group, ok := nodeToNodeGroup[pod.Spec.NodeName]
 		if !ok {
 			// It should be solved by PropagationPolicy controller instead of the scheduler extender.
-			klog.Warningf("find pod running on the node %s which is not in target nodegroups, ignore it")
+			klog.V(2).Infof("find pod %s/%s running on the node %s which is not in target nodegroups, ignore it", pod.Namespace, pod.Name, pod.Spec.NodeName)
 			continue
 		}
 		currentPodsInTargetNodeGroups[group]++
