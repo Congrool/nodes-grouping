@@ -1,17 +1,18 @@
 package manager
 
 import (
+	"context"
 	"fmt"
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
-	informerappsv1 "k8s.io/client-go/informers/apps/v1"
-	informercorev1 "k8s.io/client-go/informers/core/v1"
+	kubeclient "k8s.io/client-go/kubernetes"
 	"k8s.io/klog/v2"
 
 	groupmanagementv1alpha1 "github.com/Congrool/nodes-grouping/pkg/apis/groupmanagement/v1alpha1"
-	informer "github.com/Congrool/nodes-grouping/pkg/generated/informers/externalversions/groupmanagement/v1alpha1"
+	groupmanagementclient "github.com/Congrool/nodes-grouping/pkg/generated/clientset/versioned/typed/groupmanagement/v1alpha1"
 	"github.com/Congrool/nodes-grouping/pkg/scheduler/utils"
 )
 
@@ -25,36 +26,33 @@ type GroupManager interface {
 var _ GroupManager = &groupManager{}
 
 type groupManager struct {
-	policyInformer    informer.PropagationPolicyInformer
-	nodegroupInformer informer.NodeGroupInformer
-	deployInformer    informerappsv1.DeploymentInformer
-	podInformer       informercorev1.PodInformer
+	groupManagementClientSet groupmanagementclient.GroupmanagementV1alpha1Interface
+	kubeClientSet            kubeclient.Interface
 }
 
-func New(policyInformer informer.PropagationPolicyInformer,
-	nodegroupInformer informer.NodeGroupInformer,
-	deployInformer informerappsv1.DeploymentInformer,
-	podInformer informercorev1.PodInformer) GroupManager {
-
+func New(
+	groupmanagementClientSet groupmanagementclient.GroupmanagementV1alpha1Interface,
+	kubeClientSet kubeclient.Interface,
+) GroupManager {
 	return &groupManager{
-		policyInformer:    policyInformer,
-		nodegroupInformer: nodegroupInformer,
-		deployInformer:    deployInformer,
-		podInformer:       podInformer,
+		groupManagementClientSet: groupmanagementClientSet,
+		kubeClientSet:            kubeClientSet,
 	}
 }
 
 func (gm *groupManager) GetRelativeDeployAndPolicy(pod *corev1.Pod) (*groupmanagementv1alpha1.PropagationPolicy, *appsv1.Deployment, error) {
-	policyList, err := gm.policyInformer.Lister().List(labels.Everything())
+	namespace := pod.Namespace
+	policyList, err := gm.groupManagementClientSet.PropagationPolicies(namespace).
+		List(context.TODO(), metav1.ListOptions{LabelSelector: labels.Everything().String()})
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to list PropagationPolicy: %v", err)
 	}
 
-	for _, policy := range policyList {
+	for _, policy := range policyList.Items {
 		var deploys []*appsv1.Deployment
 		for _, selector := range policy.Spec.ResourceSelectors {
 			if selector.Namespace != "" && selector.Name != "" {
-				deploy, err := gm.deployInformer.Lister().Deployments(selector.Namespace).Get(selector.Name)
+				deploy, err := gm.kubeClientSet.AppsV1().Deployments(selector.Namespace).Get(context.TODO(), selector.Name, metav1.GetOptions{})
 				if err != nil {
 					klog.Errorf("failed to get deploy %s/%s, %v", selector.Namespace, selector.Name)
 					continue
@@ -65,7 +63,7 @@ func (gm *groupManager) GetRelativeDeployAndPolicy(pod *corev1.Pod) (*groupmanag
 
 		for _, deploy := range deploys {
 			if utils.IfPodMatchDeploy(deploy, pod) {
-				return policy, deploy, nil
+				return &policy, deploy, nil
 			}
 		}
 	}
@@ -133,7 +131,7 @@ func (gm *groupManager) MapNodeToNodeGroup(policy *groupmanagementv1alpha1.Propa
 		for _, name := range weight.NodeGroupNames {
 			// TODO:
 			// make nodegroup non-namespaced
-			nodegroup, err := gm.nodegroupInformer.Lister().NodeGroups("default").Get(name)
+			nodegroup, err := gm.groupManagementClientSet.NodeGroups("default").Get(context.TODO(), name, metav1.GetOptions{})
 			if err != nil {
 				klog.Errorf("failed to get nodegroup %s, %v", name, err)
 				continue
@@ -162,13 +160,14 @@ func (gm *groupManager) CurrentPodsNumInTargetNodeGroups(policy *groupmanagement
 	if err != nil {
 		return nil, fmt.Errorf("failed to get pod selector from deploy: %s/%s, %v", deploy.Namespace, deploy.Name, err)
 	}
-	pods, err := gm.podInformer.Lister().List(selector)
+
+	pods, err := gm.kubeClientSet.CoreV1().Pods(deploy.Namespace).List(context.TODO(), metav1.ListOptions{LabelSelector: selector.String()})
 	if err != nil {
 		return nil, fmt.Errorf("failed to list pods of deploy: %s/%s, %v", deploy.Namespace, deploy.Name, err)
 	}
 
 	currentPodsInTargetNodeGroups := map[string]int32{}
-	for _, pod := range pods {
+	for _, pod := range pods.Items {
 		if pod.Spec.NodeName == "" {
 			// ignore no scheduled pod
 			continue

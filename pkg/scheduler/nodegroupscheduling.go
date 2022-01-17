@@ -8,7 +8,6 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/klog/v2"
 	"k8s.io/kubernetes/pkg/scheduler/framework"
@@ -16,7 +15,6 @@ import (
 	config "github.com/Congrool/nodes-grouping/pkg/apis/config"
 	groupmanagementv1alpha1 "github.com/Congrool/nodes-grouping/pkg/apis/groupmanagement/v1alpha1"
 	groupmanagementclientset "github.com/Congrool/nodes-grouping/pkg/generated/clientset/versioned"
-	groupinformerfactory "github.com/Congrool/nodes-grouping/pkg/generated/informers/externalversions"
 	"github.com/Congrool/nodes-grouping/pkg/scheduler/manager"
 )
 
@@ -69,34 +67,13 @@ func New(obj runtime.Object, handle framework.Handle) (framework.Plugin, error) 
 		return nil, fmt.Errorf("NodeGroupScheduling: failed to init rest.Config: %v", err)
 	}
 
-	clientset := groupmanagementclientset.NewForConfigOrDie(conf)
-	informerFactory := groupinformerfactory.NewSharedInformerFactory(clientset, 0)
-	policyInformer := informerFactory.Groupmanagement().V1alpha1().PropagationPolicies()
-	nodegroupInformer := informerFactory.Groupmanagement().V1alpha1().NodeGroups()
-	podInformer := handle.SharedInformerFactory().Core().V1().Pods()
-	deployInformer := handle.SharedInformerFactory().Apps().V1().Deployments()
+	gmClientSet := groupmanagementclientset.NewForConfigOrDie(conf)
+	kubeClientSet := handle.ClientSet()
 
-	groupManager := manager.New(policyInformer, nodegroupInformer, deployInformer, podInformer)
-
-	hasSyncFuncs := []cache.InformerSynced{
-		podInformer.Informer().HasSynced,
-		deployInformer.Informer().HasSynced,
-		policyInformer.Informer().HasSynced,
-		nodegroupInformer.Informer().HasSynced,
-	}
-
-	ctx := context.TODO()
-	informerFactory.Start(ctx.Done())
-	// TODO: run informer in the handle.SharedInformerFactory
-	go podInformer.Informer().Run(ctx.Done())
-	go deployInformer.Informer().Run(ctx.Done())
-
-	klog.V(2).Info("NodeGroupScheduling: waitting for cache sync")
-	if !cache.WaitForCacheSync(ctx.Done(), hasSyncFuncs...) {
-		err := fmt.Errorf("WaitForCacheSync failed")
-		klog.ErrorS(err, "NodeGroupScheduling cannot sync caches")
-		return nil, err
-	}
+	groupManager := manager.New(
+		gmClientSet.GroupmanagementV1alpha1(),
+		kubeClientSet,
+	)
 
 	return &NodeGroupScheduling{
 		groupManager: groupManager,
